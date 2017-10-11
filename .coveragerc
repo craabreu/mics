@@ -1,0 +1,16 @@
+[paths]
+source =
+   src/mics
+   */site-packages/mics
+
+[run]
+branch = true
+source =
+    mics
+    tests
+parallel = true
+
+[report]
+show_missing = true
+precision = 2
+omit = *migrations*
