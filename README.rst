@@ -10,11 +10,9 @@ Overview
     * - docs
       - |docs|
     * - tests
-      - | |travis| |appveyor| |requires|
-        | |codecov|
+      - | |travis| |appveyor| |requires| |coveralls| |codecov|
     * - package
-      - | |version| |wheel| |supported-versions| |supported-implementations|
-        | |commits-since|
+      - | |version| |wheel| |supported-versions| |supported-implementations| |commits-since|
 
 .. |docs| image:: https://readthedocs.org/projects/python-mics/badge/?style=flat
     :target: https://readthedocs.org/projects/python-mics
@@ -31,6 +29,10 @@ Overview
 .. |requires| image:: https://requires.io/github/craabreu/python-mics/requirements.svg?branch=master
     :alt: Requirements Status
     :target: https://requires.io/github/craabreu/python-mics/requirements/?branch=master
+
+.. |coveralls| image:: https://coveralls.io/repos/craabreu/python-mics/badge.svg?branch=master&service=github
+    :alt: Coverage Status
+    :target: https://coveralls.io/r/craabreu/python-mics
 
 .. |codecov| image:: https://codecov.io/github/craabreu/python-mics/coverage.svg?branch=master
     :alt: Coverage Status

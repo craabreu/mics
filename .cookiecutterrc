@@ -25,7 +25,7 @@ default_context:
     codecov:                   'yes'
     command_line_interface:    'no'
     command_line_interface_bin_name: 'mics'
-    coveralls:                 'no'
+    coveralls:                 'yes'
     distribution_name:         'mics'
     email:                     'abreu@eq.ufrj.br'
     full_name:                 'Charlles R. A. Abreu'
