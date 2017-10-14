@@ -52,9 +52,9 @@ setup(
         'Programming Language :: Python :: 3',
         'Programming Language :: Python :: 3.5',
         'Programming Language :: Python :: 3.6',
-        'Programming Language :: Python :: Implementation :: CPython',
-        'Programming Language :: Python :: Implementation :: PyPy',
         # uncomment if you test on these interpreters:
+        # 'Programming Language :: Python :: Implementation :: CPython',
+        # 'Programming Language :: Python :: Implementation :: PyPy',
         # 'Programming Language :: Python :: Implementation :: IronPython',
         # 'Programming Language :: Python :: Implementation :: Jython',
         # 'Programming Language :: Python :: Implementation :: Stackless',
@@ -64,6 +64,8 @@ setup(
         # eg: 'keyword1', 'keyword2', 'keyword3',
     ],
     install_requires=[
+        'numpy>=1.13.0',
+        'pandas==0.21.0rc1',
         # eg: 'aspectlib==1.1.1', 'six>=1.7',
     ],
     extras_require={

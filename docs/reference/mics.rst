@@ -7,3 +7,9 @@ mics
 
 .. automodule:: mics
     :members:
+
+.. automodule:: mics.states
+    :members:
+
+.. automodule:: mics.utils
+    :members:
