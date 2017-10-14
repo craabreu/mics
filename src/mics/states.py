@@ -19,7 +19,7 @@ class State:
         samples (MICS)
 
         Args:
-            sample:
+            sample (pandas.DataFrame):
                 a data frame whose rows represent configurations sampled according to a
                 given probability distribution and whose columns contain a number of
                 properties evaluated for such configurations.

@@ -5,14 +5,11 @@ Overview
 .. start-badges
 
 .. list-table::
-    :stub-columns: 1
+    :stub-columns: 0
 
-    * - docs
-      - |docs|
-    * - tests
-      - | |travis| |appveyor| |requires| |coveralls| |codecov|
-    * - package
-      - | |version| |wheel| |supported-versions| |commits-since|
+    * - |docs|
+    * - |travis| |appveyor| |requires| |coveralls| |codecov|
+    * - |version| |wheel| |supported-versions| |commits-since|
 
 .. |docs| image:: https://readthedocs.org/projects/python-mics/badge/?style=flat
     :target: https://readthedocs.org/projects/python-mics
@@ -53,7 +50,6 @@ Overview
 .. |supported-versions| image:: https://img.shields.io/pypi/pyversions/mics.svg
     :alt: Supported versions
     :target: https://pypi.python.org/pypi/mics
-
 
 .. end-badges
 

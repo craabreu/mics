@@ -20,3 +20,5 @@ assert states[0].neff == 101
 assert states[1].neff == 78
 assert states[2].neff == 71
 assert states[3].neff == 55
+
+mix = mics.mixtures.Mixture(states, verbose=True)

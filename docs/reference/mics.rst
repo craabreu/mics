@@ -5,11 +5,20 @@ mics
 
     from mics import *
 
-.. automodule:: mics
+mixtures
+========
+
+.. automodule:: mics.mixtures
     :members:
+
+states
+======
 
 .. automodule:: mics.states
     :members:
+
+utils
+=====
 
 .. automodule:: mics.utils
     :members:
