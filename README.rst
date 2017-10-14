@@ -12,7 +12,7 @@ Overview
     * - tests
       - | |travis| |appveyor| |requires| |coveralls| |codecov|
     * - package
-      - | |version| |wheel| |supported-versions| |supported-implementations| |commits-since|
+      - | |version| |wheel| |supported-versions| |commits-since|
 
 .. |docs| image:: https://readthedocs.org/projects/python-mics/badge/?style=flat
     :target: https://readthedocs.org/projects/python-mics
@@ -52,10 +52,6 @@ Overview
 
 .. |supported-versions| image:: https://img.shields.io/pypi/pyversions/mics.svg
     :alt: Supported versions
-    :target: https://pypi.python.org/pypi/mics
-
-.. |supported-implementations| image:: https://img.shields.io/pypi/implementation/mics.svg
-    :alt: Supported implementations
     :target: https://pypi.python.org/pypi/mics
 
 
