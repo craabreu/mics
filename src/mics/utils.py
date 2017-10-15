@@ -68,7 +68,7 @@ def overlapSampling(u):
     seq = np.argsort([np.mean(u[i][i, :]) for i in range(m)])
     i = seq[0]
     f = np.zeros(m)
-    for j in seq[1:]:
+    for j in seq[1:m]:
         f[j] = f[i] + logsumexp(0.5*(u[j][j, :] - u[j][i, :])) - \
                       logsumexp(0.5*(u[i][i, :] - u[i][j, :]))
         i = j
@@ -77,7 +77,7 @@ def overlapSampling(u):
 
 def _SumOfDeviationsPerBlock(y, ym, b):
     m, n = y.shape
-    dy = y - ym
+    dy = y - ym.reshape([m, 1])
     B = np.empty([m, n-b+1])
     B[:, 0] = np.sum(dy[:, range(b)], axis=1)
     for j in range(n-b):

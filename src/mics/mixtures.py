@@ -10,6 +10,7 @@
 
 import numpy as np
 
+from mics.utils import covariance
 from mics.utils import info
 from mics.utils import multimap
 from mics.utils import overlapSampling
@@ -49,13 +50,13 @@ class Mixture:
         if any([names(i) != properties for i in S]):
             raise ValueError("inconsistent data")
 
-        n = self.n = [states[i].sample.shape[0] for i in S]
-        info(verbose, "Sample sizes:", n)
+        n = self.n = np.array([states[i].sample.shape[0] for i in S])
+        info(verbose, "Sample sizes:", str(n))
 
         neff = np.array([states[i].neff for i in S])
-        info(verbose, "Effective sample sizes:", neff)
+        info(verbose, "Effective sample sizes:", str(neff))
 
-        pi = self.pi = neff/sum(neff)
+        pi = self.pi = neff.astype(float)/sum(neff)
         info(verbose, "Mixture composition:", pi)
 
         potentials = [states[i].potential for i in S]
@@ -64,31 +65,31 @@ class Mixture:
         f = self.f = overlapSampling(u)
         info(verbose, "Initial free-energy guess:", f)
 
-        P = self.P = [np.empty([m, n[i]]) for i in S]
+        self.P = [np.empty([m, n[i]]) for i in S]
         self.u0 = [np.empty([1, n[i]]) for i in S]
 
-        def iteration():
-            self._compute(f, u)
-            pm = [np.mean(P[i], axis=1) for i in S]
-            p0 = sum(pi[i]*pm[i] for i in S)
-            B0 = np.diag(p0) - sum(P[i].dot(P[i].T)*pi[i]/n[i] for i in S)  # Optimize here
-            df = np.linalg.solve(B0[1:m, 1:m], (pi - p0)[1:m])
-            return df, p0, B0
-
-        iter = 0
-        df, p0, B0 = iteration()
+        iter = 1
+        df, pm, p0, B0 = self._newton_raphson_iteration(u)
         while any(abs(df) > tol):
             iter += 1
             f[1:m] += df
-            df, p0, B0 = iteration()
+            df, pm, p0, B0 = self._newton_raphson_iteration(u)
         info(verbose, "Free energies after %d iterations:" % iter, f)
 
-    def _compute(self, f, u):
-        """
-        Computes probabilities
-        """
-        m = len(u)
-        g = (f + np.log(self.pi)).reshape([m, 1])
+        D, V = np.linalg.eigh(B0)
+        pinv = np.vectorize(lambda x: 0.0 if abs(x) < tol else 1.0/x)
+        iB0 = self.iB0 = (V*pinv(D)).dot(V.T)
+        pm = [np.mean(self.P[i], axis=1) for i in S]
+        S0 = sum(pi[i]**2*covariance(self.P[i], pm[i], states[i].b) for i in S)
+        self.Theta = iB0.dot(S0.dot(iB0))
+        info(verbose, "Free-energy covariance matrix:", self.Theta)
+
+    def _newton_raphson_iteration(self, u):
+        m = self.m
+        P = self.P
+        pi = self.pi
+        S = range(m)
+        g = (self.f + np.log(self.pi)).reshape([m, 1])
         for i in range(m):
             x = g - u[i]
             xmax = np.amax(x, axis=0)
@@ -97,12 +98,8 @@ class Mixture:
             self.P[i] = numer / denom
             self.u0[i] = -(xmax + np.log(denom))
 
-#     def means(self, X):
-#         """
-#         Computes the means of a set of properties
-#         """
-#         m = len(X)
-#         n = X[0].shape[0]
-#         xm = [np.empty(m)
-#         for i in range(len(X)):
-#             x
+        pm = [np.mean(P[i], axis=1) for i in S]
+        p0 = sum(pi[i]*pm[i] for i in S)
+        B0 = np.diag(p0) - sum(P[i].dot(P[i].T)*pi[i]/self.n[i] for i in S)  # Optimize here
+        df = np.linalg.solve(B0[1:m, 1:m], (pi - p0)[1:m])
+        return df, pm, p0, B0
