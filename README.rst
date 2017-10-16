@@ -1,15 +1,11 @@
-========
-Overview
-========
-
 .. start-badges
 
 .. list-table::
     :stub-columns: 0
 
-    * - |docs|
     * - |travis| |appveyor| |requires| |coveralls| |codecov|
     * - |version| |wheel| |supported-versions| |commits-since|
+    * - |docs|
 
 .. |docs| image:: https://readthedocs.org/projects/python-mics/badge/?style=flat
     :target: https://readthedocs.org/projects/python-mics
@@ -52,6 +48,10 @@ Overview
     :target: https://pypi.python.org/pypi/mics
 
 .. end-badges
+
+========
+Overview
+========
 
 Mixtures of Independently Collected Samples
 

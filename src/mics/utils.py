@@ -11,8 +11,8 @@
 import numpy as np
 from scipy.special import logsumexp
 
-_msg_color = "\033[1;36m"
-_val_color = "\033[0;36m"
+_msg_color = "\033[1;33m"
+_val_color = "\033[0;33m"
 _no_color = "\033[0m"
 
 
@@ -73,6 +73,17 @@ def overlapSampling(u):
                       logsumexp(0.5*(u[i][i, :] - u[i][j, :]))
         i = j
     return f - f[0]
+
+
+def pinv(A):
+    """
+    Computes the Moore-Penrose pseudoinverse of a symmetric matrix using eigenvalue
+    decomposition.
+
+    """
+    D, V = np.linalg.eigh(A)
+    inv = np.vectorize(lambda x: 0.0 if np.isclose(x, 0.0) else 1.0/x)
+    return (V*inv(D)).dot(V.T)
 
 
 def _SumOfDeviationsPerBlock(y, ym, b):

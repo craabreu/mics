@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """
 .. module:: mixtures
    :platform: Unix, Windows
@@ -9,11 +10,13 @@
 """
 
 import numpy as np
+import pandas as pd
 
 from mics.utils import covariance
 from mics.utils import info
 from mics.utils import multimap
 from mics.utils import overlapSampling
+from mics.utils import pinv
 
 
 class Mixture:
@@ -76,13 +79,21 @@ class Mixture:
             df, pm, p0, B0 = self._newton_raphson_iteration(u)
         info(verbose, "Free energies after %d iterations:" % iter, f)
 
-        D, V = np.linalg.eigh(B0)
-        pinv = np.vectorize(lambda x: 0.0 if abs(x) < tol else 1.0/x)
-        iB0 = self.iB0 = (V*pinv(D)).dot(V.T)
+        iB0 = self.iB0 = pinv(B0)
         pm = [np.mean(self.P[i], axis=1) for i in S]
         S0 = sum(pi[i]**2*covariance(self.P[i], pm[i], states[i].b) for i in S)
         self.Theta = iB0.dot(S0.dot(iB0))
         info(verbose, "Free-energy covariance matrix:", self.Theta)
+
+    def free_energies(self):
+        """
+        Returns a data frame containing the relative free energies of the sampled states
+        of a `mixture`, as well as their standard errors.
+
+        """
+        T = self.Theta
+        df = np.sqrt([T[i, i] - 2*T[i, 0] + T[0, 0] for i in range(self.m)])
+        return pd.DataFrame(data={'f': self.f, 'δf': df})
 
     def _newton_raphson_iteration(self, u):
         m = self.m
