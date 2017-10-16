@@ -1,7 +1,7 @@
 """
 .. module:: states
    :platform: Unix, Windows
-   :synopsis: a module for defining the class :class:`State`.
+   :synopsis: a module for defining the class :class:`state`.
 
 .. moduleauthor:: Charlles R. A. Abreu <abreu@eq.ufrj.br>
 
@@ -14,7 +14,7 @@ from mics.utils import covariance
 from mics.utils import multimap
 
 
-class State:
+class state:
     """An equilibrium state aimed to be part of a mixture of independently collected
         samples (MICS)
 

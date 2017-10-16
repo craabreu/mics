@@ -1,6 +1,6 @@
 __version__ = "0.1.0"
 
-from mics.mixtures import Mixture
-from mics.states import State
+from mics.mixtures import mixture
+from mics.states import state
 
-__all__ = ['State', 'Mixture']
+__all__ = ['state', 'mixture']

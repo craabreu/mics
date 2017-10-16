@@ -19,7 +19,7 @@ from mics.utils import overlapSampling
 from mics.utils import pinv
 
 
-class Mixture:
+class mixture:
     """A mixture of independently collected samples (MICS)
 
         Args:
