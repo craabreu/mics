@@ -1,4 +1,6 @@
 # -*- coding: utf-8 -*-
+from functools import partial
+
 import numpy as np
 import pandas as pd
 
@@ -14,17 +16,43 @@ beta = 1.6773985789
 data = ["tests/data/log_%d.dat" % (i + 1) for i in range(m)]
 
 
-def potential(j):
-    return lambda x: beta*x['E'+str(j+1)]
+def solution_1():  # Closures
+
+    def pot_gen(j):
+        return lambda x: beta*x['E'+str(j+1)]
+
+    def diff_gen(j):
+        return lambda x: pot_gen(min(j+1, m-1))(x) - pot_gen(max(j-1, 0))(x)
+
+    states = []
+    for i in range(m):
+        sample = pd.read_csv(data[i], sep=' ')
+        potential = pot_gen(i)
+        difference = diff_gen(i)
+        states.append(mics.state(sample, potential, difference))
+
+    return states
 
 
-def difference(j):
-    return lambda x: potential(min(j+1, m-1))(x) - potential(max(j-1, 0))(x)
+def solution_2():  # Partial evatualion:
+
+    def pot_fun(x, j):
+        return beta*x['E'+str(j+1)]
+
+    def diff_fun(x, j):
+        return pot_fun(x, min(j+1, m-1)) - pot_fun(x, max(j-1, 0))
+
+    states = []
+    for i in range(m):
+        sample = pd.read_csv(data[i], sep=' ')
+        potential = partial(pot_fun, j=i)
+        difference = partial(diff_fun, j=i)
+        states.append(mics.state(sample, potential, difference))
+
+    return states
 
 
-states = []
-for i in range(m):
-    states.append(mics.state(pd.read_csv(data[i], sep=' '), potential(i), difference(i)))
+states = solution_2()
 
 neff = [101, 76, 69, 54]
 for i in range(4):
