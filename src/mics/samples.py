@@ -1,7 +1,7 @@
 """
-.. module:: states
+.. module:: samples
    :platform: Unix, Windows
-   :synopsis: a module for defining the class :class:`state`.
+   :synopsis: a module for defining the class :class:`sample`.
 
 .. moduleauthor:: Charlles R. A. Abreu <abreu@eq.ufrj.br>
 
@@ -14,23 +14,24 @@ from mics.utils import covariance
 from mics.utils import multimap
 
 
-class state:
-    """An equilibrium state aimed to be part of a mixture of independently collected
-        samples (MICS)
+class sample:
+    """
+    A sample of configurations collected at a specific equilibrium state, aimed to be part
+    of a mixture of independently collected samples (MICS).
 
         Args:
-            sample (pandas.DataFrame):
-                a data frame whose rows represent configurations sampled according to a
+            dataset (pandas.DataFrame):
+                a data frame whose rows represent configurations datasetd according to a
                 given probability distribution and whose columns contain a number of
                 properties evaluated for such configurations.
             potential (function):
-                the reduced potential that defines the equilibrium state. This function
+                the reduced potential that defines the equilibrium sample. This function
                 might for instance receive **x** and return the result of an element-wise
                 calculation involving **x['a']**, **x['b']**, etc, with **'a'**, **'b'**,
-                etc being names of properties in **sample**.
+                etc being names of properties in **dataset**.
             autocorr (function, optional):
                 a function similar to **potential**, but whose result is an autocorrelated
-                property to be used for determining the effective sample size. If omitted,
+                property to be used for determining the effective dataset size. If omitted,
                 **potential** will be used to for this purpose.
 
         Note:
@@ -39,18 +40,18 @@ class state:
 
     """
 
-    def __init__(self, sample, potential, autocorr=None):
-        self.sample = sample
+    def __init__(self, dataset, potential, autocorr=None):
+        self.dataset = dataset
         self.potential = potential
-        n = self.n = sample.shape[0]
+        n = self.n = dataset.shape[0]
         b = self.b = int(round(np.sqrt(n)))
         if autocorr is None:
-            y = multimap([potential], sample)
+            y = multimap([potential], dataset)
         else:
-            y = multimap([autocorr], sample)
+            y = multimap([autocorr], dataset)
         ym = np.mean(y, axis=1)
         S1 = covariance(y, ym, 1).item(0)
         Sb = covariance(y, ym, b).item(0)
         self.neff = int(round(n*S1/Sb))
         if not np.isfinite(self.neff):
-            raise FloatingPointError("unable to determine effective sample size")
+            raise FloatingPointError("unable to determine effective dataset size")

@@ -24,8 +24,8 @@ class mixture:
     """A mixture of independently collected samples (MICS)
 
         Args:
-            states (list or tuple):
-                a list of states.
+            samples (list or tuple):
+                a list of samples.
             title (str, optional):
                 a title.
             verbose (bool, optional):
@@ -36,37 +36,37 @@ class mixture:
     """
 
     # ======================================================================================
-    def __init__(self, states, title="Untitled", verbose=False, tol=1.0E-8):
+    def __init__(self, samples, title="Untitled", verbose=False, tol=1.0E-8):
 
         info(verbose, "Setting up MICS case:", title)
 
-        m = self.m = len(states)
-        self.states = states
+        m = self.m = len(samples)
+        self.samples = samples
         S = range(m)
-        info(verbose, "Number of states:", m)
+        info(verbose, "Number of samples:", m)
 
         if m == 0:
-            raise ValueError("state set is empty")
+            raise ValueError("sample set is empty")
 
         def names(i):
-            return list(states[i].sample.columns.values)
+            return list(samples[i].dataset.columns.values)
         properties = names(0)
         info(verbose, "Properties:", ", ".join(properties))
 
         if any([names(i) != properties for i in S]):
             raise ValueError("inconsistent data")
 
-        n = self.n = np.array([states[i].sample.shape[0] for i in S])
-        info(verbose, "Sample sizes:", str(n))
+        n = self.n = np.array([samples[i].dataset.shape[0] for i in S])
+        info(verbose, "dataset sizes:", str(n))
 
-        neff = np.array([states[i].neff for i in S])
-        info(verbose, "Effective sample sizes:", str(neff))
+        neff = np.array([samples[i].neff for i in S])
+        info(verbose, "Effective dataset sizes:", str(neff))
 
         pi = self.pi = neff.astype(float)/sum(neff)
         info(verbose, "Mixture composition:", pi)
 
-        potentials = [states[i].potential for i in S]
-        u = [multimap(potentials, states[i].sample) for i in S]
+        potentials = [samples[i].potential for i in S]
+        u = [multimap(potentials, samples[i].dataset) for i in S]
 
         f = self.f = overlapSampling(u)
         info(verbose, "Initial free-energy guess:", f)
@@ -84,14 +84,14 @@ class mixture:
         info(verbose, "Free energies after %d iterations:" % iter, f)
 
         iB0 = self.iB0 = pinv(B0)
-        S0 = sum(pi[i]**2*covariance(self.P[i], self.pm[i], states[i].b) for i in S)
+        S0 = sum(pi[i]**2*covariance(self.P[i], self.pm[i], samples[i].b) for i in S)
         self.Theta = iB0.dot(S0.dot(iB0))
         info(verbose, "Free-energy covariance matrix:", self.Theta)
 
     # ======================================================================================
     def free_energies(self):
         """
-        Returns a data frame containing the relative free energies of the sampled states
+        Returns a data frame containing the relative free energies of the datasetd samples
         of a `mixture`, as well as their standard errors.
 
         """
@@ -103,26 +103,26 @@ class mixture:
     def reweight(self, properties, potential, parameter):
         """
         Performs reweighting of the properties computed by `functions` from the mixture to
-        the states determined by the provided `potential` with all `parameter` values.
+        the samples determined by the provided `potential` with all `parameter` values.
 
         """
-        state = self.states
+        sample = self.samples
         m = self.m
         pi = self.pi
         P = self.P
         pm = self.pm
         S = range(m)
-        b = [state[i].b for i in S]
+        b = [sample[i].b for i in S]
 
         def compute(x):
             return np.vstack([np.ones(x.shape[0]), multimap(properties, x)])
 
-        z = [compute(state[i].sample) for i in S]
+        z = [compute(sample[i].dataset) for i in S]
 
         y0 = []
         Xi = []
         for value in parameter:
-            u = [multimap([lambda x: potential(x, value)], state[i].sample) for i in S]
+            u = [multimap([lambda x: potential(x, value)], sample[i].dataset) for i in S]
             du = [self.u0[i] - u[i] for i in S]
             maxdu = np.amax([np.amax(du[i]) for i in S])
             y = [np.exp(du[i] - maxdu)*z[i] for i in S]
@@ -131,7 +131,7 @@ class mixture:
             Spy = [cross_covariance(P[i], pm[i], y[i], ym[i], b[i]) for i in S]
             Sy0y0 = sum(pi[i]**2*Syy[i] for i in S)
             Sp0y0 = sum(pi[i]**2*Spy[i] for i in S)
-            Z0 = -sum(P[i].dot(y[i].T)*pi[i]/state[i].n for i in S)
+            Z0 = -sum(P[i].dot(y[i].T)*pi[i]/sample[i].n for i in S)
             A = Z0.T.dot(self.iB0.dot(Sp0y0))
             y0.append(sum(pi[i]*ym[i] for i in S))
             Xi.append(Sy0y0 + A + A.T + Z0.T.dot(self.Theta.dot(Z0)))

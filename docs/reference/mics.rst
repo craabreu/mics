@@ -11,10 +11,10 @@ mixtures
 .. automodule:: mics.mixtures
     :members:
 
-states
-======
+samples
+=======
 
-.. automodule:: mics.states
+.. automodule:: mics.samples
     :members:
 
 utils
