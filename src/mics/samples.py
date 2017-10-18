@@ -11,6 +11,7 @@
 import numpy as np
 
 from mics.utils import covariance
+from mics.utils import mkcallable
 from mics.utils import multimap
 
 
@@ -42,16 +43,16 @@ class sample:
 
     def __init__(self, dataset, potential, autocorr=None):
         self.dataset = dataset
-        self.potential = potential
+        self.potential = mkcallable(potential)
         n = self.n = dataset.shape[0]
         b = self.b = int(round(np.sqrt(n)))
         if autocorr is None:
-            y = multimap([potential], dataset)
+            y = multimap([self.potential], dataset)
         else:
-            y = multimap([autocorr], dataset)
+            y = multimap([mkcallable(autocorr)], dataset)
         ym = np.mean(y, axis=1)
         S1 = covariance(y, ym, 1).item(0)
         Sb = covariance(y, ym, b).item(0)
-        self.neff = int(round(n*S1/Sb))
+        self.neff = n*S1/Sb
         if not np.isfinite(self.neff):
             raise FloatingPointError("unable to determine effective dataset size")

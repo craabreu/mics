@@ -31,18 +31,19 @@ for i in range(m):
     difference = partial(diff_fun, beta=beta, j=i)
     samples.append(mics.sample(dataset, potential, difference))
 
-neff = [101, 76, 69, 54]
+neff = [100.53337462306746, 75.96158869910701, 68.72831124139921, 54.195291583870194]
 for i in range(4):
-    assert samples[i].neff == neff[i]
+    np.testing.assert_almost_equal(samples[i].neff, neff[i])
 
 mixture = mics.mixture(samples, verbose=True)
 
 fe = mixture.free_energies()
+print(fe)
 
-np.testing.assert_almost_equal(fe['f'][m-1], 3.62444247539)
-np.testing.assert_almost_equal(fe['δf'][m-1], 0.162805619863)
+np.testing.assert_almost_equal(fe['f'][m-1], 3.6245656740094492)
+np.testing.assert_almost_equal(fe['δf'][m-1], 0.16278496395668807)
 
-properties = [lambda x: x.Press, lambda x: x.PotEng]
+properties = ['Press', 'PotEng']
 potential = partial(pot_fun, j=m-1)
 
 props = mixture.reweight(properties, potential, parameter=[0.9*beta, beta, 1.1*beta])

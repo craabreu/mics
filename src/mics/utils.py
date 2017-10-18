@@ -16,6 +16,21 @@ _val_color = "\033[0;33m"
 _no_color = "\033[0m"
 
 
+def mkcallable(a):
+    """
+    Returns a function based on the passed argument.
+    """
+    if callable(a):
+        return a
+    elif isinstance(a, str):
+        def func(x):
+            return x[a]
+        func.__name__ = a
+        return func
+    else:
+        raise ValueError("passed argument is neither a callable object nor a string")
+
+
 def multimap(functions, sample):
     """
     Applies a list of ``functions`` to DataFrame `sample` and returns a numpy matrix whose
@@ -89,10 +104,10 @@ def pinv(A):
 def _SumOfDeviationsPerBlock(y, ym, b):
     m, n = y.shape
     dy = y - ym.reshape([m, 1])
+    z = np.cumsum(dy, axis=1)
     B = np.empty([m, n-b+1])
-    B[:, 0] = np.sum(dy[:, range(b)], axis=1)
-    for j in range(n-b):
-        B[:, j+1] = B[:, j] + dy[:, j+b] - dy[:, j]
+    B[:, 0] = z[:, 0]
+    B[:, 1:n-b+1] = z[:, b:n] - z[:, 0:n-b]
     return B
 
 

@@ -15,6 +15,7 @@ import pandas as pd
 from mics.utils import covariance
 from mics.utils import cross_covariance
 from mics.utils import info
+from mics.utils import mkcallable
 from mics.utils import multimap
 from mics.utils import overlapSampling
 from mics.utils import pinv
@@ -42,27 +43,26 @@ class mixture:
 
         m = self.m = len(samples)
         self.samples = samples
+        self.verbose = verbose
         S = range(m)
         info(verbose, "Number of samples:", m)
 
         if m == 0:
             raise ValueError("sample set is empty")
 
-        def names(i):
-            return list(samples[i].dataset.columns.values)
-        properties = names(0)
-        info(verbose, "Properties:", ", ".join(properties))
+        names = [list(samples[i].dataset.columns.values) for i in S]
+        info(verbose, "Properties:", ", ".join(names[0]))
 
-        if any([names(i) != properties for i in S]):
-            raise ValueError("inconsistent data")
+        if any([names[i] != names[0] for i in range(1, m)]):
+            raise ValueError("provided samples have distinct properties")
 
         n = self.n = np.array([samples[i].dataset.shape[0] for i in S])
-        info(verbose, "dataset sizes:", str(n))
+        info(verbose, "sample sizes:", str(n))
 
         neff = np.array([samples[i].neff for i in S])
-        info(verbose, "Effective dataset sizes:", str(neff))
+        info(verbose, "Effective sample sizes:", str(neff))
 
-        pi = self.pi = neff.astype(float)/sum(neff)
+        pi = self.pi = neff/sum(neff)
         info(verbose, "Mixture composition:", pi)
 
         potentials = [samples[i].potential for i in S]
@@ -100,10 +100,15 @@ class mixture:
         return pd.DataFrame(data={'f': self.f, 'δf': df})
 
     # ======================================================================================
-    def reweight(self, properties, potential, parameter):
+    def reweight(self, properties, potential, parameter, combinations=None):
         """
         Performs reweighting of the properties computed by `functions` from the mixture to
         the samples determined by the provided `potential` with all `parameter` values.
+
+        Args:
+            properties (function list):
+            potential (function):
+            parameter (pandas.DataFrame):
 
         """
         sample = self.samples
@@ -114,14 +119,17 @@ class mixture:
         S = range(m)
         b = [sample[i].b for i in S]
 
+        functions = [mkcallable(p) for p in properties]
+
         def compute(x):
-            return np.vstack([np.ones(x.shape[0]), multimap(properties, x)])
+            return np.vstack([np.ones(x.shape[0]), multimap(functions, x)])
 
         z = [compute(sample[i].dataset) for i in S]
 
         y0 = []
         Xi = []
         for value in parameter:
+            info(self.verbose, "Parameter value:", value)
             u = [multimap([lambda x: potential(x, value)], sample[i].dataset) for i in S]
             du = [self.u0[i] - u[i] for i in S]
             maxdu = np.amax([np.amax(du[i]) for i in S])
@@ -136,8 +144,9 @@ class mixture:
             y0.append(sum(pi[i]*ym[i] for i in S))
             Xi.append(Sy0y0 + A + A.T + Z0.T.dot(self.Theta.dot(Z0)))
 
+        print([f.__name__ for f in functions])
         for k in range(len(parameter)):
-            print(y0[k][1]/y0[k][0], y0[k][2]/y0[k][0])
+            print([y0[k][i]/y0[k][0] for i in range(1, len(properties)+1)])
 
     # ======================================================================================
     def _newton_raphson_iteration(self, u):
@@ -145,7 +154,7 @@ class mixture:
         P = self.P
         pi = self.pi
         S = range(m)
-        g = (self.f + np.log(self.pi)).reshape([m, 1])
+        g = (self.f + np.log(pi)).reshape([m, 1])
         for i in S:
             x = g - u[i]
             xmax = np.amax(x, axis=0)
