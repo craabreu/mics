@@ -3,8 +3,6 @@ from sympy import Symbol
 from sympy.parsing.sympy_parser import parse_expr
 from sympy.utilities.lambdify import lambdify
 
-from mics.utils import error
-
 
 def genfunc(expr, names, **kwargs):
     """
@@ -22,11 +20,11 @@ def genfunc(expr, names, **kwargs):
             local_dict.update(kwargs)
             func = parse_expr(expr, local_dict)
         except:
-            error("unable to parse expression '%s'" % expr)
+            raise SyntaxError("unable to parse expression '%s'" % expr)
         for symbol in func.free_symbols:
             if symbol not in variables.values():
-                raise ValueError("symbol " + str(symbol) + " is unknown")
-        return lambdify("_x_", func, modules=["numpy"])
+                raise ValueError("unknown symbol found in expression '%s'" % expr)
+        return lambdify("_x_", func, ["numpy"])
 
     else:
         raise ValueError("passed argument is neither a callable object nor a string")

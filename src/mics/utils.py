@@ -99,8 +99,3 @@ def info(verbose, msg, val):
             print(np.array2string(x) + _no_color)
         else:
             print(_msg_color + msg + _val_color, val, _no_color)
-
-
-def error(msg):
-    print("\033[1;31mERROR: \033[0;31m%s\033[0m" % msg)
-    exit(1)
