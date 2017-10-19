@@ -10,9 +10,9 @@
 
 import numpy as np
 
+from mics.evaluation import genfunc
+from mics.evaluation import multimap
 from mics.utils import covariance
-from mics.utils import mkcallable
-from mics.utils import multimap
 
 
 class sample:
@@ -41,15 +41,16 @@ class sample:
 
     """
 
-    def __init__(self, dataset, potential, autocorr=None):
+    def __init__(self, dataset, potential, autocorr=None, **kwargs):
+        names = list(dataset.columns)
         self.dataset = dataset
-        self.potential = mkcallable(potential)
+        self.potential = genfunc(potential, names, **kwargs)
         n = self.n = dataset.shape[0]
         b = self.b = int(round(np.sqrt(n)))
         if autocorr is None:
             y = multimap([self.potential], dataset)
         else:
-            y = multimap([mkcallable(autocorr)], dataset)
+            y = multimap([genfunc(autocorr, names, **kwargs)], dataset)
         ym = np.mean(y, axis=1)
         S1 = covariance(y, ym, 1).item(0)
         Sb = covariance(y, ym, b).item(0)

@@ -31,26 +31,6 @@ def mkcallable(a):
         raise ValueError("passed argument is neither a callable object nor a string")
 
 
-def multimap(functions, sample):
-    """
-    Applies a list of ``functions`` to DataFrame `sample` and returns a numpy matrix whose
-    number of rows is equal to the length of list `functions` and whose number of columns
-    is equal to the number of rows in `sample`.
-
-    Note:
-        Each function of the array might for instance receive `x` and return the result of
-        an element-wise calculation involving `x['A']`, `x['B']`, etc, with 'A', 'B', etc
-        being names of properties in DataFrame `sample`.
-
-    """
-    m = len(functions)
-    n = sample.shape[0]
-    f = np.empty([m, n])
-    for i in range(m):
-        f[i, :] = functions[i](sample).values
-    return f
-
-
 def covariance(y, ym, b):
     """
     Computes the covariance matrix of the rows of matrix `y` among themselves. The method
@@ -119,3 +99,8 @@ def info(verbose, msg, val):
             print(np.array2string(x) + _no_color)
         else:
             print(_msg_color + msg + _val_color, val, _no_color)
+
+
+def error(msg):
+    print("\033[1;31mERROR: \033[0;31m%s\033[0m" % msg)
+    exit(1)

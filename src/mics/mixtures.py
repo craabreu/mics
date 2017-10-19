@@ -12,11 +12,11 @@
 import numpy as np
 import pandas as pd
 
+from mics.evaluation import multimap
 from mics.utils import covariance
 from mics.utils import cross_covariance
 from mics.utils import info
 from mics.utils import mkcallable
-from mics.utils import multimap
 from mics.utils import overlapSampling
 from mics.utils import pinv
 
