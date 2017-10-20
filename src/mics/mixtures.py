@@ -12,11 +12,11 @@
 import numpy as np
 import pandas as pd
 
+from mics.evaluation import genfunc
 from mics.evaluation import multimap
 from mics.utils import covariance
 from mics.utils import cross_covariance
 from mics.utils import info
-from mics.utils import mkcallable
 from mics.utils import overlapSampling
 from mics.utils import pinv
 
@@ -41,20 +41,20 @@ class mixture:
 
         info(verbose, "Setting up MICS case:", title)
 
-        m = self.m = len(samples)
         self.samples = samples
+        self.title = title
         self.verbose = verbose
-        S = range(m)
+
+        m = self.m = len(samples)
+        if m == 0:
+            raise ValueError("list of samples is empty")
         info(verbose, "Number of samples:", m)
 
-        if m == 0:
-            raise ValueError("sample set is empty")
-
-        names = [list(samples[i].dataset.columns.values) for i in S]
-        info(verbose, "Properties:", ", ".join(names[0]))
-
-        if any([names[i] != names[0] for i in range(1, m)]):
+        names = self.names = list(samples[0].dataset.columns)
+        S = range(m)
+        if any(list(samples[i].dataset.columns) != names for i in S):
             raise ValueError("provided samples have distinct properties")
+        info(verbose, "Properties:", ", ".join(names))
 
         n = self.n = np.array([samples[i].dataset.shape[0] for i in S])
         info(verbose, "sample sizes:", str(n))
@@ -100,14 +100,14 @@ class mixture:
         return pd.DataFrame(data={'f': self.f, 'δf': df})
 
     # ======================================================================================
-    def reweight(self, properties, potential, parameter, combinations=None):
+    def reweight(self, potential, properties={}, combinations={}, conditions=None, **kwargs):
         """
         Performs reweighting of the properties computed by `functions` from the mixture to
         the samples determined by the provided `potential` with all `parameter` values.
 
         Args:
-            properties (function list):
-            potential (function):
+            potential (function or string):
+            properties (dict of functions and/or strings):
             parameter (pandas.DataFrame):
 
         """
@@ -119,18 +119,25 @@ class mixture:
         S = range(m)
         b = [sample[i].b for i in S]
 
-        functions = [mkcallable(p) for p in properties]
+        if properties:
+            # Assumption: properties do not depend on conditions
+            functions = [genfunc(p, self.names, **kwargs) for p in properties.values()]
 
-        def compute(x):
-            return np.vstack([np.ones(x.shape[0]), multimap(functions, x)])
+            def compute(x):
+                return np.vstack([np.ones(x.shape[0]), multimap(functions, x)])
 
-        z = [compute(sample[i].dataset) for i in S]
+            z = [compute(sample[i].dataset) for i in S]
+        else:
+            z = [np.ones(sample[i].dataset.shape[0]) for i in S]
 
         y0 = []
         Xi = []
-        for value in parameter:
-            info(self.verbose, "Parameter value:", value)
-            u = [multimap([lambda x: potential(x, value)], sample[i].dataset) for i in S]
+        for j, row in conditions.iterrows():
+            condition = row.to_dict()
+            info(self.verbose, "Condition:", condition)
+            condition.update(kwargs)
+            func = genfunc(potential, self.names, **condition)
+            u = [multimap([func], sample[i].dataset) for i in S]
             du = [self.u0[i] - u[i] for i in S]
             maxdu = np.amax([np.amax(du[i]) for i in S])
             y = [np.exp(du[i] - maxdu)*z[i] for i in S]
@@ -144,17 +151,17 @@ class mixture:
             y0.append(sum(pi[i]*ym[i] for i in S))
             Xi.append(Sy0y0 + A + A.T + Z0.T.dot(self.Theta.dot(Z0)))
 
-        print([f.__name__ for f in functions])
-        for k in range(len(parameter)):
-            print([y0[k][i]/y0[k][0] for i in range(1, len(properties)+1)])
+        print(['f'] + [p for p in properties])
+        for k in range(len(conditions)):
+            print([-np.log(y0[k][0])] + [y0[k][i]/y0[k][0] for i in range(1, len(properties)+1)])
 
     # ======================================================================================
     def _newton_raphson_iteration(self, u):
         m = self.m
         P = self.P
         pi = self.pi
-        S = range(m)
         g = (self.f + np.log(pi)).reshape([m, 1])
+        S = range(m)
         for i in S:
             x = g - u[i]
             xmax = np.amax(x, axis=0)

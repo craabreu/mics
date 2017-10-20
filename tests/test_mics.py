@@ -1,6 +1,4 @@
 # -*- coding: utf-8 -*-
-from functools import partial
-
 import numpy as np
 import pandas as pd
 
@@ -14,10 +12,6 @@ def test_main():
 m = 4
 beta = 1.6773985789
 data = ["tests/data/log_%d.dat" % (i + 1) for i in range(m)]
-
-
-def pot_fun(x, beta, j):
-    return beta*x['E'+str(j+1)]
 
 
 samples = []
@@ -39,7 +33,13 @@ print(fe)
 np.testing.assert_almost_equal(fe['f'][m-1], 3.6245656740094492)
 np.testing.assert_almost_equal(fe['δf'][m-1], 0.16278496395668807)
 
-properties = ['Press', 'PotEng']
-potential = partial(pot_fun, j=m-1)
+parameters = pd.DataFrame({"beta": beta*np.array([0.9, 1.0, 1.1])})
 
-props = mixture.reweight(properties, potential, parameter=[0.9*beta, beta, 1.1*beta])
+
+def potential(x, **p):
+    return p['beta']*x['E4']
+
+
+props = mixture.reweight(potential,
+                         properties={'P': 'Press', 'U': 'PotEng'},
+                         conditions=parameters)

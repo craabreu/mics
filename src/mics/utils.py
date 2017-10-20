@@ -16,21 +16,6 @@ _val_color = "\033[0;33m"
 _no_color = "\033[0m"
 
 
-def mkcallable(a):
-    """
-    Returns a function based on the passed argument.
-    """
-    if callable(a):
-        return a
-    elif isinstance(a, str):
-        def func(x):
-            return x[a]
-        func.__name__ = a
-        return func
-    else:
-        raise ValueError("passed argument is neither a callable object nor a string")
-
-
 def covariance(y, ym, b):
     """
     Computes the covariance matrix of the rows of matrix `y` among themselves. The method

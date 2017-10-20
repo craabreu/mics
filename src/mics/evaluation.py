@@ -9,22 +9,22 @@ def genfunc(expr, names, **kwargs):
     Returns a function based on the passed argument.
     """
     if callable(expr):
-        return expr
+        def func(x):
+            return expr(x, **kwargs)
+        return func
 
     elif isinstance(expr, str):
         try:
             variables = {}
+            local_dict = kwargs.copy()
             for name in names:
-                variables[name] = Symbol("_x_." + name)
-            local_dict = variables.copy()
-            local_dict.update(kwargs)
+                local_dict[name] = variables[name] = Symbol("x." + name)
             func = parse_expr(expr, local_dict)
         except:
             raise SyntaxError("unable to parse expression '%s'" % expr)
-        for symbol in func.free_symbols:
-            if symbol not in variables.values():
-                raise ValueError("unknown symbol found in expression '%s'" % expr)
-        return lambdify("_x_", func, ["numpy"])
+        if [s for s in func.free_symbols if s not in variables.values()]:
+            raise ValueError("unspecified parameters found in expression '%s'" % expr)
+        return lambdify("x", func, ["numpy"])
 
     else:
         raise ValueError("passed argument is neither a callable object nor a string")

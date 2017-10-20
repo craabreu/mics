@@ -54,6 +54,6 @@ class sample:
         ym = np.mean(y, axis=1)
         S1 = covariance(y, ym, 1).item(0)
         Sb = covariance(y, ym, b).item(0)
-        self.neff = n*S1/Sb
-        if not np.isfinite(self.neff):
+        if not (np.isfinite(S1) and np.isfinite(Sb)):
             raise FloatingPointError("unable to determine effective dataset size")
+        self.neff = n*S1/Sb
