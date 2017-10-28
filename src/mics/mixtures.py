@@ -11,6 +11,7 @@
 
 import numpy as np
 import pandas as pd
+from numpy.linalg import multi_dot
 
 from mics.evaluation import genfunc
 from mics.evaluation import multimap
@@ -57,6 +58,7 @@ class mixture:
         info(verbose, "Properties:", ", ".join(names))
 
         n = self.n = np.array([samples[i].dataset.shape[0] for i in S])
+        self.b = [samples[i].b for i in S]
         info(verbose, "sample sizes:", str(n))
 
         neff = np.array([samples[i].neff for i in S])
@@ -100,60 +102,67 @@ class mixture:
         return pd.DataFrame(data={'f': self.f, 'δf': df})
 
     # ======================================================================================
-    def reweight(self, potential, properties={}, combinations={}, conditions=None, **kwargs):
+    def reweighting(self,
+                    potential,
+                    properties={},
+                    combinations={},
+                    conditions=pd.DataFrame(),
+                    **kwargs):
         """
         Performs reweighting of the properties computed by `functions` from the mixture to
         the samples determined by the provided `potential` with all `parameter` values.
 
         Args:
-            potential (function or string):
-            properties (dict of functions and/or strings):
+            potential (function/string):
+            properties (dict of functions/strings):
+            combinations (dict of strings):
             parameter (pandas.DataFrame):
+            **kwargs:
 
         """
-        sample = self.samples
-        m = self.m
+        n = self.n
         pi = self.pi
         P = self.P
         pm = self.pm
-        S = range(m)
-        b = [sample[i].b for i in S]
+        datasets = [s.dataset for s in self.samples]
+        S = range(self.m)
 
         if properties:
-            # Assumption: properties do not depend on conditions
             functions = [genfunc(p, self.names, **kwargs) for p in properties.values()]
-
-            def compute(x):
-                return np.vstack([np.ones(x.shape[0]), multimap(functions, x)])
-
-            z = [compute(sample[i].dataset) for i in S]
+            z = [np.vstack([np.ones(len(x)), multimap(functions, x)]) for x in datasets]
         else:
-            z = [np.ones(sample[i].dataset.shape[0]) for i in S]
+            z = [np.ones(n) for n in self.n]
 
-        y0 = []
-        Xi = []
+        N = len(conditions)
+        f = np.empty(N, np.float64)
+        df = np.empty(N, np.float64)
         for j, row in conditions.iterrows():
             condition = row.to_dict()
-            info(self.verbose, "Condition:", condition)
+            info(self.verbose, "Condition[%d]:" % j, condition)
             condition.update(kwargs)
-            func = genfunc(potential, self.names, **condition)
-            u = [multimap([func], sample[i].dataset) for i in S]
-            du = [self.u0[i] - u[i] for i in S]
-            maxdu = np.amax([np.amax(du[i]) for i in S])
-            y = [np.exp(du[i] - maxdu)*z[i] for i in S]
-            ym = [np.mean(y[i], axis=1) for i in S]
-            Syy = [covariance(y[i], ym[i], b[i]) for i in S]
-            Spy = [cross_covariance(P[i], pm[i], y[i], ym[i], b[i]) for i in S]
-            Sy0y0 = sum(pi[i]**2*Syy[i] for i in S)
-            Sp0y0 = sum(pi[i]**2*Spy[i] for i in S)
-            Z0 = -sum(P[i].dot(y[i].T)*pi[i]/sample[i].n for i in S)
-            A = Z0.T.dot(self.iB0.dot(Sp0y0))
-            y0.append(sum(pi[i]*ym[i] for i in S))
-            Xi.append(Sy0y0 + A + A.T + Z0.T.dot(self.Theta.dot(Z0)))
 
-        print(['f'] + [p for p in properties])
-        for k in range(len(conditions)):
-            print([-np.log(y0[k][0])] + [y0[k][i]/y0[k][0] for i in range(1, len(properties)+1)])
+            potfunc = genfunc(potential, self.names, **condition)
+            u = [multimap([potfunc], x) for x in datasets]
+            y = [np.exp(self.u0[i] - u[i])*z[i] for i in S]
+            ym = [np.mean(y[i], axis=1) for i in S]
+
+            y0 = sum(pi[i]*ym[i] for i in S)
+            f[j] = -np.log(y0[0])
+
+            Syy = [covariance(y[i], ym[i], self.b[i]) for i in S]
+            Sy0y0 = sum(pi[i]**2*Syy[i] for i in S)
+            Spy = [cross_covariance(P[i], pm[i], y[i], ym[i], self.b[i]) for i in S]
+            Sp0y0 = sum(pi[i]**2*Spy[i] for i in S)
+            Z0 = -sum(np.matmul(P[i], y[i].T)*pi[i]/self.n[i] for i in S)
+            A = multi_dot([Z0.T, self.iB0, Sp0y0])
+            Xi = Sy0y0 + A + A.T + multi_dot([Z0.T, self.Theta, Z0])
+
+            df[j] = np.sqrt(Xi[0, 0]/y0[0]**2)
+
+        result = conditions.copy()
+        result['f'] = f
+        result['δf'] = df
+        return result
 
     # ======================================================================================
     def _newton_raphson_iteration(self, u):

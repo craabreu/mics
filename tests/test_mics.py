@@ -33,13 +33,10 @@ print(fe)
 np.testing.assert_almost_equal(fe['f'][m-1], 3.6245656740094492)
 np.testing.assert_almost_equal(fe['δf'][m-1], 0.16278496395668807)
 
-parameters = pd.DataFrame({"beta": beta*np.array([0.9, 1.0, 1.1])})
+parameters = pd.DataFrame({"beta": beta*np.linspace(0.8, 1.2, 5)})
 
+props = mixture.reweighting(potential='beta*E4',
+                            properties={'P': 'Press', 'E': 'PotEng + KinEng'},
+                            conditions=parameters)
 
-def potential(x, **p):
-    return p['beta']*x['E4']
-
-
-props = mixture.reweight(potential,
-                         properties={'P': 'Press', 'U': 'PotEng'},
-                         conditions=parameters)
+print(props)
