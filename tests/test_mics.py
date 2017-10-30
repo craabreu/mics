@@ -25,7 +25,7 @@ neff = [100.829779921697, 76.82824014457174, 69.63811023389404, 55.1791921646371
 for i in range(4):
     np.testing.assert_almost_equal(samples[i].neff, neff[i])
 
-mixture = mics.mixture(samples, verbose=True)
+mixture = mics.MICS(samples, verbose=True)
 
 fe = mixture.free_energies()
 print(fe)
