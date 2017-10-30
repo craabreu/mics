@@ -41,19 +41,17 @@ class sample:
 
     """
 
-    def __init__(self, dataset, potential, autocorr=None, **kwargs):
+    def __init__(self, dataset, potential, autocorr=None, batchsize=None, **kwargs):
         names = list(dataset.columns)
         self.dataset = dataset
         self.potential = genfunc(potential, names, **kwargs)
         n = self.n = dataset.shape[0]
-        b = self.b = int(round(np.sqrt(n)))
-        if autocorr is None:
-            y = multimap([self.potential], dataset)
-        else:
-            y = multimap([genfunc(autocorr, names, **kwargs)], dataset)
+        b = self.b = batchsize if batchsize else int(np.sqrt(n))
+        function = genfunc(autocorr, names, **kwargs) if autocorr else self.potential
+        y = multimap([function], dataset)
         ym = np.mean(y, axis=1)
         S1 = covariance(y, ym, 1).item(0)
         Sb = covariance(y, ym, b).item(0)
         if not (np.isfinite(S1) and np.isfinite(Sb)):
-            raise FloatingPointError("unable to determine effective dataset size")
+            raise FloatingPointError("unable to determine effective sample size")
         self.neff = n*S1/Sb

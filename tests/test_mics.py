@@ -21,7 +21,7 @@ for i in range(m):
     difference = "beta*(E%d - E%d)" % (min(i+2, m), max(i, 1))
     samples.append(mics.sample(dataset, potential, difference, beta=beta))
 
-neff = [100.53337462306746, 75.96158869910701, 68.72831124139921, 54.195291583870194]
+neff = [100.829779921697, 76.82824014457174, 69.63811023389404, 55.179192164637165]
 for i in range(4):
     np.testing.assert_almost_equal(samples[i].neff, neff[i])
 
@@ -30,8 +30,8 @@ mixture = mics.mixture(samples, verbose=True)
 fe = mixture.free_energies()
 print(fe)
 
-np.testing.assert_almost_equal(fe['f'][m-1], 3.6245656740094492)
-np.testing.assert_almost_equal(fe['δf'][m-1], 0.16278496395668807)
+np.testing.assert_almost_equal(fe['f'][m-1], 3.6251084520815593)
+np.testing.assert_almost_equal(fe['δf'][m-1], 0.16158119695537948)
 
 parameters = pd.DataFrame({"beta": beta*np.linspace(0.8, 1.2, 5)})
 
