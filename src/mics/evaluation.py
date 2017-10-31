@@ -4,6 +4,10 @@ from sympy.parsing.sympy_parser import parse_expr
 from sympy.utilities.lambdify import lambdify
 
 
+def red(s):
+    return "\033[1;31m" + s + "\033[0m"
+
+
 def genfunc(expr, names, **kwargs):
     """
     Returns a function based on the passed argument.
@@ -20,14 +24,14 @@ def genfunc(expr, names, **kwargs):
             for name in names:
                 local_dict[name] = variables[name] = Symbol("x." + name)
             func = parse_expr(expr, local_dict)
-        except:
-            raise SyntaxError("unable to parse expression '%s'" % expr)
+        except SyntaxError:
+            raise SyntaxError(red("unable to parse expression '%s'" % expr))
         if [s for s in func.free_symbols if s not in variables.values()]:
-            raise ValueError("unspecified parameters found in expression '%s'" % expr)
+            raise ValueError(red("unspecified parameters found in expression '%s'" % expr))
         return lambdify("x", func, ["numpy"])
 
     else:
-        raise ValueError("passed argument is neither a callable object nor a string")
+        raise ValueError(red("passed argument is neither a callable object nor a string"))
 
 
 def multimap(functions, sample):

@@ -9,6 +9,8 @@
 
 """
 
+from copy import deepcopy
+
 import numpy as np
 import pandas as pd
 
@@ -38,9 +40,9 @@ class mixture:
 
         info(verbose, "Setting up %s case:" % type(self).__name__, title)
 
-        self.samples = samples
-        self.title = title
-        self.verbose = verbose
+        self.samples = deepcopy(samples)
+        self.title = deepcopy(title)
+        self.verbose = deepcopy(verbose)
 
         m = self.m = len(samples)
         if m == 0:
@@ -57,7 +59,7 @@ class mixture:
         info(verbose, "Sample sizes:", str(self.n))
 
         neff = np.array([s.neff for s in samples])
-        info(verbose, "OBM Effective sample sizes:", neff)
+        info(verbose, "Effective sample sizes:", neff)
 
         potentials = [s.potential for s in samples]
         self.u = [multimap(potentials, s.dataset) for s in samples]

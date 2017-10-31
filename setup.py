@@ -65,9 +65,10 @@ setup(
     ],
     install_requires=[
         'numpy>=1.13.0',
-        'pymbar>=3.0.3',
+        'scipy>=0.19.1',
         'sympy>=1.1.1',
-        'pandas==0.21.0rc1',
+        'pandas>=0.21.0',
+        'pymbar>=3.0.3',
         # eg: 'aspectlib==1.1.1', 'six>=1.7',
     ],
     extras_require={

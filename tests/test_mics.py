@@ -40,3 +40,7 @@ props = mixture.reweighting(potential='beta*E4',
                             conditions=parameters)
 
 print(props)
+
+mbar = mics.MBAR(samples, verbose=True, subsample=True)
+fe = mbar.free_energies()
+print(fe)

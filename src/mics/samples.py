@@ -47,8 +47,8 @@ class sample:
         self.potential = genfunc(potential, names, **kwargs)
         n = self.n = dataset.shape[0]
         b = self.b = batchsize if batchsize else int(np.sqrt(n))
-        function = genfunc(autocorr, names, **kwargs) if autocorr else self.potential
-        y = multimap([function], dataset)
+        self.autocorr = genfunc(autocorr, names, **kwargs) if autocorr else self.potential
+        y = multimap([self.autocorr], dataset)
         ym = np.mean(y, axis=1)
         S1 = covariance(y, ym, 1).item(0)
         Sb = covariance(y, ym, b).item(0)
