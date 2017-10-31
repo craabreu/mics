@@ -1,7 +1,7 @@
 sphinx>=1.3
 sphinx-rtd-theme
 numpy
-scipy
+pymbar
 sympy
 pandas==0.21.0rc1
 -e .

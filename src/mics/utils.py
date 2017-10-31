@@ -9,7 +9,6 @@
 """
 
 import numpy as np
-from scipy.special import logsumexp
 
 _msg_color = "\033[1;33m"
 _val_color = "\033[0;33m"
@@ -37,6 +36,11 @@ def cross_covariance(y, ym, z, zm, b):
     Sz = _SumOfDeviationsPerBlock(z, zm, b)
     nmb = y.shape[1] - b
     return Sy.dot(Sz.T)/(b*nmb*(nmb + 1))
+
+
+def logsumexp(x):
+    xmax = np.amax(x)
+    return xmax + np.log(np.sum(np.exp(x - xmax)))
 
 
 def overlapSampling(u):
