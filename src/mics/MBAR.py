@@ -66,8 +66,8 @@ class MBAR(mixture):
         info(verbose, "Free-energy covariance matrix:", self.Theta)
 
     # ======================================================================================
-    def _reweight(self, u, z):
-        A = np.hstack(z)
+    def _reweight(self, u, y):
+        A = np.hstack(y)
         u_n = np.hstack(u)
         y, dy, T = self.MBAR.computeMultipleExpectations(A, u_n, compute_covariance=True)
         u_ln = np.vstack([u_n, self.u[0, :]])
