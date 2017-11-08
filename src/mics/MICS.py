@@ -48,16 +48,15 @@ class MICS(mixture):
         self.u0 = [np.empty([1, n], np.float64) for n in self.n]
 
         iter = 1
-        df, B0 = self._newton_raphson_iteration()
+        df = self._newton_raphson_iteration()
         while any(abs(df) > tol):
             iter += 1
             self.f[1:m] += df
-            df, B0 = self._newton_raphson_iteration()
+            df = self._newton_raphson_iteration()
         info(verbose, "Free energies after %d iterations:" % iter, self.f)
 
-        iB0 = self.iB0 = pinv(B0)
         S0 = sum(pi[i]**2*covariance(P[i], pm[i], b[i]) for i in range(m))
-        self.Theta = multi_dot([iB0, S0, iB0])
+        self.Theta = multi_dot([self.iB0, S0, self.iB0])
         info(verbose, "Free-energy covariance matrix:", self.Theta)
 
     # ======================================================================================
@@ -79,8 +78,9 @@ class MICS(mixture):
 
         p0 = sum(pi[i]*self.pm[i] for i in S)
         B0 = np.diag(p0) - sum(P[i].dot(P[i].T)*pi[i]/self.n[i] for i in S)  # Optimize here
-        df = np.linalg.solve(B0[1:m, 1:m], (pi - p0)[1:m])
-        return df, B0
+        self.iB0 = pinv(B0)
+        df = np.matmul(self.iB0, pi - p0)
+        return df[1:m]-df[0]
 
     # ======================================================================================
     def _reweight(self, u, z):
