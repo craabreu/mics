@@ -55,7 +55,6 @@ class mixture:
         info(verbose, "Properties:", ", ".join(names))
 
         n = self.n = np.array([s.dataset.shape[0] for s in samples])
-        b = self.b = [s.b for s in samples]
         info(verbose, "Sample sizes:", str(self.n))
 
         neff = np.array([s.neff for s in samples])
@@ -67,7 +66,7 @@ class mixture:
         self.f = overlapSampling(self.u)
         info(verbose, "Initial free-energy guess:", self.f)
 
-        return m, n, b, neff
+        return m, n, neff
 
     # ======================================================================================
     def free_energies(self):
@@ -103,9 +102,9 @@ class mixture:
 
         if properties:
             functions = [genfunc(p, self.names, **kwargs) for p in properties.values()]
-            z = [np.vstack([np.ones(len(x)), multimap(functions, x)]) for x in datasets]
+            z = [multimap(functions, x) for x in datasets]
         else:
-            z = [np.ones(n) for n in self.n]
+            z = None
 
         N = len(conditions)
         f = np.empty(N, np.float64)
@@ -118,7 +117,7 @@ class mixture:
             potfunc = genfunc(potential, self.names, **condition)
             u = [multimap([potfunc], x) for x in datasets]
 
-            f[j], df[j] = self._reweight(u, z)
+            f[j], df[j], A, Sigma = self._reweight(u, z)
 
         result = conditions.copy()
         result['f'] = f

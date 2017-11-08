@@ -80,7 +80,7 @@ def _SumOfDeviationsPerBlock(y, ym, b):
     return B
 
 
-def info(verbose, msg, val):
+def info(verbose, msg, val=""):
     if verbose:
         if isinstance(val, np.ndarray):
             print(_msg_color + msg + _val_color)

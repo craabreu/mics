@@ -37,8 +37,9 @@ class MICS(mixture):
     # ======================================================================================
     def __init__(self, samples, title="Untitled", verbose=False, tol=1.0E-8):
 
-        m, n, b, neff = self._definitions(samples, title, verbose)
+        m, n, neff = self._definitions(samples, title, verbose)
 
+        b = self.b = [s.b for s in samples]
         pi = self.pi = neff/sum(neff)
         info(verbose, "Mixture composition:", pi)
 
@@ -88,20 +89,23 @@ class MICS(mixture):
         P = self.P
         pm = self.pm
 
-        y = [np.exp(self.u0[i] - u[i])*z[i] for i in S]
+        a = [np.exp(self.u0[i] - u[i]) for i in S]
+        y = [np.vstack([a[i]*z[i], a[i]]) for i in S]
         ym = [np.mean(y[i], axis=1) for i in S]
 
         y0 = sum(pi[i]*ym[i] for i in S)
-        f = -np.log(y0[0])
 
         Syy = [covariance(y[i], ym[i], self.b[i]) for i in S]
         Sy0y0 = sum(pi[i]**2*Syy[i] for i in S)
         Spy = [cross_covariance(P[i], pm[i], y[i], ym[i], self.b[i]) for i in S]
         Sp0y0 = sum(pi[i]**2*Spy[i] for i in S)
         Z0 = -sum(np.matmul(P[i], y[i].T)*pi[i]/self.n[i] for i in S)
-        A = multi_dot([Z0.T, self.iB0, Sp0y0])
-        Xi = Sy0y0 + A + A.T + multi_dot([Z0.T, self.Theta, Z0])
+        M = multi_dot([Z0.T, self.iB0, Sp0y0])
+        Xi = Sy0y0 + M + M.T + multi_dot([Z0.T, self.Theta, Z0])
 
-        df = np.sqrt(Xi[0, 0]/y0[0]**2)
+        Q = y0[-1]
+        A = y0/Q
+        A[-1] = -np.log(Q)
 
-        return f, df
+        Sigma = Xi
+        return A[-1], Xi[-1, -1], A, Sigma

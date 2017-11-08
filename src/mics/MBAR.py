@@ -36,43 +36,40 @@ class MBAR(mixture):
     def __init__(self, samples, title="Untitled", verbose=False, tol=1.0E-8,
                  subsample=False, compute_acf=True):
 
-        m, n, b, neff = self._definitions(samples, title, verbose)
+        m, n, neff = self._definitions(samples, title, verbose)
 
         if subsample:
             if compute_acf:
-                info(verbose, "Subsampling method:", "Integrated Autocorrelation Function")
+                info(verbose, "Subsampling method:", "integrated autocorrelation function")
             else:
-                info(verbose, "Subsampling method:", "Overlapping Batch Means")
+                info(verbose, "Subsampling method:", "overlapping batch means")
             for (i, s) in enumerate(self.samples):
                 old = s.dataset.index
                 if compute_acf:
                     new = timeseries.subsampleCorrelatedData(s.autocorr(s.dataset))
                 else:
                     new = timeseries.subsampleCorrelatedData(old, g=n[i]/neff[i])
-                s.dataset[old.isin(new)]
+                s.dataset.drop([k for k in old if k not in set(new)], inplace=True)
                 self.u[i] = self.u[i][:, new]
                 n[i] = len(new)
-            info(verbose, "Subsampled data:", str(n))
+            info(verbose, "Subsampled dataset sizes:", str(n))
 
-        u_kln = np.zeros([m, m, np.max(n)], np.float64)
-        for i in range(m):
-            u_kln[i, :, 0:n[i]] = self.u[i]
+        self.u = np.hstack(self.u)
+        self.MBAR = mbar.MBAR(self.u, n, relative_tolerance=tol, initial_f_k=self.f)
 
-        self.MBAR = mbar.MBAR(u_kln, n, relative_tolerance=tol, initial_f_k=self.f)
-
-        F, D, Theta = self.MBAR.getFreeEnergyDifferences(return_theta=True)
-        self.f = np.array(F[0, :])
+        self.f = self.MBAR.f_k
         info(verbose, "Free energies after convergence:", self.f)
 
-        self.Theta = np.array(Theta)
+        T = self.MBAR._computeAsymptoticCovarianceMatrix(np.exp(self.MBAR.Log_W_nk),
+                                                         self.MBAR.N_k, method='svd-ew')
+        self.Theta = np.array(T)
         info(verbose, "Free-energy covariance matrix:", self.Theta)
 
     # ======================================================================================
     def _reweight(self, u, z):
-        pass
-#         S = range(self.m)
-#         pi = self.pi
-#         P = self.P
-#         pm = self.pm
-
-#         return f, df
+        A = np.hstack(z)
+        u_n = np.hstack(u)
+        y, dy, T = self.MBAR.computeMultipleExpectations(A, u_n, compute_covariance=True)
+        u_ln = np.vstack([u_n, self.u[0, :]])
+        f, df = self.MBAR.computePerturbedFreeEnergies(u_ln)
+        return f[1, 0], df[1, 0], y, T
