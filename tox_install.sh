@@ -1,3 +1,3 @@
 #!/bin/bash
-pip install numpy
+pip install numpy six
 pip install $@
