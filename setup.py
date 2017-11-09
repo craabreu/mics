@@ -68,6 +68,7 @@ setup(
         'scipy>=0.19.1',
         'sympy>=1.1.1',
         'pandas>=0.21.0',
+        'six>=1.10.0',
         'pymbar>=3.0.3',
         # eg: 'aspectlib==1.1.1', 'six>=1.7',
     ],
