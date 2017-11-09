@@ -43,7 +43,7 @@ class MICS(mixture):
         pi = self.pi = neff/sum(neff)
         info(verbose, "Mixture composition:", pi)
 
-        P = self.P = [np.empty([m, n], np.float64) for n in self.n]
+        P = self.P = [np.empty([m, k], np.float64) for k in self.n]
         pm = self.pm = [np.empty(m, np.float64) for i in range(m)]
         self.u0 = [np.empty([1, n], np.float64) for n in self.n]
 
@@ -77,7 +77,7 @@ class MICS(mixture):
             self.pm[i] = np.mean(P[i], axis=1)
 
         p0 = sum(pi[i]*self.pm[i] for i in S)
-        B0 = np.diag(p0) - sum(P[i].dot(P[i].T)*pi[i]/self.n[i] for i in S)  # Optimize here
+        B0 = np.diag(p0) - sum(P[i].dot(P[i].T)*pi[i]/self.n[i] for i in S)  # Use BLAS here
         self.iB0 = pinv(B0)
         df = np.matmul(self.iB0, pi - p0)
         return df[1:m]-df[0]
