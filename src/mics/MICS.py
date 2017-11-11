@@ -13,8 +13,8 @@ import numpy as np
 from numpy.linalg import multi_dot
 
 from mics.mixtures import mixture
+# from mics.utils import cross_covariance
 from mics.utils import covariance
-from mics.utils import cross_covariance
 from mics.utils import info
 from mics.utils import pinv
 
@@ -44,8 +44,8 @@ class MICS(mixture):
         info(verbose, "Mixture composition:", pi)
 
         P = self.P = [np.empty([m, k], np.float64) for k in self.n]
-        pm = self.pm = [np.empty(m, np.float64) for i in range(m)]
-        self.u0 = [np.empty([1, n], np.float64) for n in self.n]
+        pm = self.pm = [np.empty(m, np.float64) for k in self.n]
+        self.u0 = [np.empty([1, k], np.float64) for k in self.n]
 
         iter = 1
         df = self._newton_raphson_iteration()
@@ -76,36 +76,34 @@ class MICS(mixture):
             self.u0[i] = -(xmax + np.log(denom))
             self.pm[i] = np.mean(P[i], axis=1)
 
-        p0 = sum(pi[i]*self.pm[i] for i in S)
+        p0 = self.p0 = sum(pi[i]*self.pm[i] for i in S)
         B0 = np.diag(p0) - sum(P[i].dot(P[i].T)*pi[i]/self.n[i] for i in S)  # Use BLAS here
         self.iB0 = pinv(B0)
         df = np.matmul(self.iB0, pi - p0)
         return df[1:m]-df[0]
 
     # ======================================================================================
-    def _reweight(self, u, z):
-        S = range(self.m)
+    def _reweight(self, u, y):
+        rm = range(self.m)
         pi = self.pi
-        P = self.P
-        pm = self.pm
 
-        a = [np.exp(self.u0[i] - u[i]) for i in S]
-        y = [np.vstack([a[i]*z[i], a[i]]) for i in S]
-        ym = [np.mean(y[i], axis=1) for i in S]
+        w = [np.exp(self.u0[i] - u[i]) for i in rm]
+        z = [w[i]*y[i] for i in rm]
 
-        y0 = sum(pi[i]*ym[i] for i in S)
+        w0 = sum(pi[i]*np.mean(w[i], axis=1) for i in rm).item(0)
+        z0 = sum(pi[i]*np.mean(z[i], axis=1) for i in rm)
+        yu = z0/w0
 
-        Syy = [covariance(y[i], ym[i], self.b[i]) for i in S]
-        Sy0y0 = sum(pi[i]**2*Syy[i] for i in S)
-        Spy = [cross_covariance(P[i], pm[i], y[i], ym[i], self.b[i]) for i in S]
-        Sp0y0 = sum(pi[i]**2*Spy[i] for i in S)
-        Z0 = -sum(np.matmul(P[i], y[i].T)*pi[i]/self.n[i] for i in S)
-        M = multi_dot([Z0.T, self.iB0, Sp0y0])
-        Xi = Sy0y0 + M + M.T + multi_dot([Z0.T, self.Theta, Z0])
+        pu = sum(pi[i]*np.mean(w[i]*self.P[i], axis=1) for i in rm)/w0
+        pytu = sum(pi[i]*np.matmul(self.P[i], z[i].T)/self.n[i] for i in rm)/w0
 
-        Q = y0[-1]
-        A = y0/Q
-        A[-1] = -np.log(Q)
+        G = np.vstack([np.matmul(self.iB0, np.outer(pu, yu) - pytu),
+                       np.diag(np.ones(len(yu))/w0),
+                       -yu.reshape([1, len(yu)])/w0])
 
-        Sigma = Xi
-        return A[-1], Xi[-1, -1], A, Sigma
+        s = [np.vstack([self.P[i], z[i], w[i]]) for i in rm]
+        sm = [np.mean(x, axis=1) for x in s]
+        S0 = sum(self.pi[i]**2*covariance(s[i], sm[i], self.b[i]) for i in rm)
+        Theta = multi_dot([G.T, S0, G])
+
+        return yu, Theta

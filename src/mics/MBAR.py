@@ -67,9 +67,16 @@ class MBAR(mixture):
 
     # ======================================================================================
     def _reweight(self, u, y):
-        A = np.hstack(y)
-        u_n = np.hstack(u)
-        y, dy, T = self.MBAR.computeMultipleExpectations(A, u_n, compute_covariance=True)
-        u_ln = np.vstack([u_n, self.u[0, :]])
-        f, df = self.MBAR.computePerturbedFreeEnergies(u_ln)
-        return f[1, 0], df[1, 0], y, T
+        A_n = np.hstack(y)
+        u_ln = np.hstack(u).flatten()
+        n = A_n.shape[0]
+        map = np.vstack([np.zeros(n, np.int), np.arange(n)])
+
+        results = self.MBAR.computeExpectationsInner(A_n, u_ln, map, return_theta=True)
+
+        yu = results['observables']
+        Q = results['Theta']
+        T = Q[0:n, 0:n] + Q[n:2*n, n:2*n] - Q[0:n, n:2*n] - Q[n:2*n, 0:n]
+        delta = yu - results['Amin']
+        Theta = np.multiply(np.outer(delta, delta), T)
+        return yu, Theta

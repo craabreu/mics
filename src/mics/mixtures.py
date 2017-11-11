@@ -102,13 +102,13 @@ class mixture:
 
         if properties:
             functions = [genfunc(p, self.names, **kwargs) for p in properties.values()]
-            z = [multimap(functions, x) for x in datasets]
+            y = [multimap(functions, x) for x in datasets]
         else:
-            z = None
+            y = None
 
         N = len(conditions)
-        f = np.empty(N, np.float64)
-        df = np.empty(N, np.float64)
+        yu = np.empty([N, len(properties)])
+        dyu = np.empty([N, len(properties)])
         for j, row in conditions.iterrows():
             condition = row.to_dict()
             info(self.verbose, "Condition[%d]:" % j, condition)
@@ -117,9 +117,12 @@ class mixture:
             potfunc = genfunc(potential, self.names, **condition)
             u = [multimap([potfunc], x) for x in datasets]
 
-            f[j], df[j], A, Sigma = self._reweight(u, z)
+            yu[j, :], Theta = self._reweight(u, y)
+            dyu[j, :] = np.sqrt(Theta.diagonal())
 
         result = conditions.copy()
-        result['f'] = f
-        result['δf'] = df
+        for (i, p) in enumerate(properties.keys()):
+            result[p] = yu[:, i]
+            result['δ' + p] = dyu[:, i]
+
         return result
