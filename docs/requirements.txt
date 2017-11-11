@@ -3,6 +3,4 @@ sphinx-rtd-theme
 numpy
 sympy
 pandas
-six
-pymbar
 -e .
