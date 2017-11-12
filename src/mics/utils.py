@@ -23,7 +23,7 @@ def covariance(y, ym, b):
     """
     S = _SumOfDeviationsPerBlock(y, ym, b)
     nmb = y.shape[1] - b
-    return S.dot(S.T)/(b*nmb*(nmb + 1))
+    return np.matmul(S, S.T)/(b*nmb*(nmb + 1))
 
 
 def cross_covariance(y, ym, z, zm, b):
@@ -35,7 +35,7 @@ def cross_covariance(y, ym, z, zm, b):
     Sy = _SumOfDeviationsPerBlock(y, ym, b)
     Sz = _SumOfDeviationsPerBlock(z, zm, b)
     nmb = y.shape[1] - b
-    return Sy.dot(Sz.T)/(b*nmb*(nmb + 1))
+    return np.matmul(Sy, Sz.T)/(b*nmb*(nmb + 1))
 
 
 def logsumexp(x):

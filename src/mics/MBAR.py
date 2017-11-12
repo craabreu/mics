@@ -55,15 +55,17 @@ class MBAR(mixture):
             info(verbose, "Subsampled dataset sizes:", str(n))
 
         self.u = np.hstack(self.u)
-        self.MBAR = mbar.MBAR(self.u, n, relative_tolerance=tol, initial_f_k=self.f)
+        mb = self.MBAR = mbar.MBAR(self.u, n, relative_tolerance=tol, initial_f_k=self.f)
 
-        self.f = self.MBAR.f_k
+        self.f = mb.f_k
         info(verbose, "Free energies after convergence:", self.f)
 
-        T = self.MBAR._computeAsymptoticCovarianceMatrix(np.exp(self.MBAR.Log_W_nk),
-                                                         self.MBAR.N_k, method='svd-ew')
-        self.Theta = np.array(T)
+        Theta = mb._computeAsymptoticCovarianceMatrix(np.exp(mb.Log_W_nk), mb.N_k)
+        self.Theta = np.array(Theta)
         info(verbose, "Free-energy covariance matrix:", self.Theta)
+
+        self.Overlap = mb.N_k*np.matmul(mb.W_nk.T, mb.W_nk)
+        info(verbose, "Overlap matrix:", self.Overlap)
 
     # ======================================================================================
     def _reweight(self, u, y):
