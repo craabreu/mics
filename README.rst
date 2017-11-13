@@ -7,37 +7,37 @@
     * - |version| |wheel| |supported-versions| |commits-since|
     * - |docs|
 
-.. |docs| image:: https://readthedocs.org/projects/python-mics/badge/?style=flat
-    :target: https://readthedocs.org/projects/python-mics
+.. |docs| image:: https://readthedocs.org/projects/mics/badge/?style=flat
+    :target: https://readthedocs.org/projects/mics
     :alt: Documentation Status
 
-.. |travis| image:: https://travis-ci.org/craabreu/python-mics.svg?branch=master
+.. |travis| image:: https://travis-ci.org/craabreu/mics.svg?branch=master
     :alt: Travis-CI Build Status
-    :target: https://travis-ci.org/craabreu/python-mics
+    :target: https://travis-ci.org/craabreu/mics
 
-.. |appveyor| image:: https://ci.appveyor.com/api/projects/status/github/craabreu/python-mics?branch=master&svg=true
+.. |appveyor| image:: https://ci.appveyor.com/api/projects/status/github/craabreu/mics?branch=master&svg=true
     :alt: AppVeyor Build Status
-    :target: https://ci.appveyor.com/project/craabreu/python-mics
+    :target: https://ci.appveyor.com/project/craabreu/mics
 
-.. |requires| image:: https://requires.io/github/craabreu/python-mics/requirements.svg?branch=master
+.. |requires| image:: https://requires.io/github/craabreu/mics/requirements.svg?branch=master
     :alt: Requirements Status
-    :target: https://requires.io/github/craabreu/python-mics/requirements/?branch=master
+    :target: https://requires.io/github/craabreu/mics/requirements/?branch=master
 
-.. |coveralls| image:: https://coveralls.io/repos/craabreu/python-mics/badge.svg?branch=master&service=github
+.. |coveralls| image:: https://coveralls.io/repos/craabreu/mics/badge.svg?branch=master&service=github
     :alt: Coverage Status
-    :target: https://coveralls.io/r/craabreu/python-mics
+    :target: https://coveralls.io/r/craabreu/mics
 
-.. |codecov| image:: https://codecov.io/github/craabreu/python-mics/coverage.svg?branch=master
+.. |codecov| image:: https://codecov.io/github/craabreu/mics/coverage.svg?branch=master
     :alt: Coverage Status
-    :target: https://codecov.io/github/craabreu/python-mics
+    :target: https://codecov.io/github/craabreu/mics
 
 .. |version| image:: https://img.shields.io/pypi/v/mics.svg
     :alt: PyPI Package latest release
     :target: https://pypi.python.org/pypi/mics
 
-.. |commits-since| image:: https://img.shields.io/github/commits-since/craabreu/python-mics/v0.1.0.svg
+.. |commits-since| image:: https://img.shields.io/github/commits-since/craabreu/mics/v0.1.0.svg
     :alt: Commits since latest release
-    :target: https://github.com/craabreu/python-mics/compare/v0.1.0...master
+    :target: https://github.com/craabreu/mics/compare/v0.1.0...master
 
 .. |wheel| image:: https://img.shields.io/pypi/wheel/mics.svg
     :alt: PyPI Wheel
@@ -67,7 +67,7 @@ Installation
 Documentation
 =============
 
-https://python-mics.readthedocs.io/
+https://mics.readthedocs.io/
 
 Development
 ===========

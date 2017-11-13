@@ -22,9 +22,3 @@ utils
 
 .. automodule:: mics.utils
     :members:
-
-evaluation
-==========
-
-.. automodule:: mics.evaluation
-    :members:

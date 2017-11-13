@@ -33,7 +33,7 @@ setup(
     ),
     author='Charlles R. A. Abreu',
     author_email='abreu@eq.ufrj.br',
-    url='https://github.com/craabreu/python-mics',
+    url='https://github.com/craabreu/mics',
     packages=find_packages('src'),
     package_dir={'': 'src'},
     py_modules=[splitext(basename(path))[0] for path in glob('src/*.py')],

@@ -37,7 +37,7 @@ default_context:
     project_name:              'MICS'
     project_short_description: 'Mixtures of Independently Collected Samples'
     release_date:              'today'
-    repo_name:                 'python-mics'
+    repo_name:                 'mics'
     requiresio:                'yes'
     scrutinizer:               'no'
     sphinx_doctest:            'no'
