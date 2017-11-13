@@ -10,9 +10,9 @@
 
 import numpy as np
 
-from mics.evaluation import genfunc
-from mics.evaluation import multimap
 from mics.utils import covariance
+from mics.utils import genfunc
+from mics.utils import multimap
 
 
 class sample:

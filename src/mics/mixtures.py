@@ -14,9 +14,9 @@ from copy import deepcopy
 import numpy as np
 import pandas as pd
 
-from mics.evaluation import genfunc
-from mics.evaluation import multimap
+from mics.utils import genfunc
 from mics.utils import info
+from mics.utils import multimap
 from mics.utils import overlapSampling
 
 

@@ -9,12 +9,66 @@
 """
 
 import numpy as np
+from sympy import Symbol
+from sympy.parsing.sympy_parser import parse_expr
+from sympy.utilities.lambdify import lambdify
 
 _msg_color = "\033[1;33m"
 _val_color = "\033[0;33m"
 _no_color = "\033[0m"
 
 
+# ==========================================================================================
+def genfunc(expr, names, **kwargs):
+    """
+    Returns a function based on the passed argument.
+    """
+    def red(s):
+        return "\033[1;31m" + s + "\033[0m"
+    if callable(expr):
+        def func(x):
+            return expr(x, **kwargs)
+        return func
+
+    elif isinstance(expr, str):
+        try:
+            variables = {}
+            local_dict = kwargs.copy()
+            for name in names:
+                local_dict[name] = variables[name] = Symbol("x." + name)
+            func = parse_expr(expr, local_dict)
+        except SyntaxError:
+            raise SyntaxError(red("unable to parse expression '%s'" % expr))
+        if [s for s in func.free_symbols if s not in variables.values()]:
+            raise ValueError(red("unspecified parameters found in expression '%s'" % expr))
+        return lambdify("x", func, ["numpy"])
+
+    else:
+        raise ValueError(red("passed argument is neither a callable object nor a string"))
+
+
+# ==========================================================================================
+def multimap(functions, sample):
+    """
+    Applies a list of ``functions`` to DataFrame `sample` and returns a numpy matrix whose
+    number of rows is equal to the length of list `functions` and whose number of columns
+    is equal to the number of rows in `sample`.
+
+    Note:
+        Each function of the array might for instance receive `x` and return the result of
+        an element-wise calculation involving `x['A']`, `x['B']`, etc, with 'A', 'B', etc
+        being names of properties in DataFrame `sample`.
+
+    """
+    m = len(functions)
+    n = sample.shape[0]
+    f = np.empty([m, n])
+    for i in range(m):
+        f[i, :] = functions[i](sample).values
+    return f
+
+
+# ==========================================================================================
 def covariance(y, ym, b):
     """
     Computes the covariance matrix of the rows of matrix `y` among themselves. The method
@@ -26,6 +80,7 @@ def covariance(y, ym, b):
     return np.matmul(S, S.T)/(b*nmb*(nmb + 1))
 
 
+# ==========================================================================================
 def cross_covariance(y, ym, z, zm, b):
     """
     Computes the cross-covariance matrix between the rows of matrix `y` with those of matrix
@@ -38,11 +93,13 @@ def cross_covariance(y, ym, z, zm, b):
     return np.matmul(Sy, Sz.T)/(b*nmb*(nmb + 1))
 
 
+# ==========================================================================================
 def logsumexp(x):
     xmax = np.amax(x)
     return xmax + np.log(np.sum(np.exp(x - xmax)))
 
 
+# ==========================================================================================
 def overlapSampling(u):
     """
     Computes the relative free energies of all sampled states using the Overlap Sampling
@@ -59,6 +116,7 @@ def overlapSampling(u):
     return f - f[0]
 
 
+# ==========================================================================================
 def pinv(A):
     """
     Computes the Moore-Penrose pseudoinverse of a symmetric matrix using eigenvalue
@@ -70,6 +128,7 @@ def pinv(A):
     return (V*inv(D)).dot(V.T)
 
 
+# ==========================================================================================
 def _SumOfDeviationsPerBlock(y, ym, b):
     m, n = y.shape
     dy = y - ym[:, np.newaxis]
@@ -80,6 +139,7 @@ def _SumOfDeviationsPerBlock(y, ym, b):
     return B
 
 
+# ==========================================================================================
 def info(verbose, msg, val=""):
     if verbose:
         if isinstance(val, np.ndarray):
