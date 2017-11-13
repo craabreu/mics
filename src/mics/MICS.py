@@ -55,8 +55,8 @@ class MICS(mixture):
             df = self._newton_raphson_iteration()
         info(verbose, "Free energies after %d iterations:" % iter, self.f)
 
-        Sp0 = self.Sp0 = sum(pi[i]**2*covariance(P[i], pm[i], b[i]) for i in range(m))
-        self.Theta = multi_dot([self.iB0, Sp0, self.iB0])
+        self.Sp0 = sum(pi[i]**2*covariance(P[i], pm[i], b[i]) for i in range(m))
+        self.Theta = multi_dot([self.iB0, self.Sp0, self.iB0])
         info(verbose, "Free-energy covariance matrix:", self.Theta)
 
         self.Overlap = np.stack(pm)
@@ -68,7 +68,7 @@ class MICS(mixture):
         u = self.u
         P = self.P
         pi = self.pi
-        g = (self.f + np.log(pi)).reshape([m, 1])
+        g = (self.f + np.log(pi))[:, np.newaxis]
         S = range(m)
         for i in S:
             x = g - u[i]
@@ -83,36 +83,34 @@ class MICS(mixture):
         B0 = np.diag(p0) - sum(pi[i]*np.matmul(P[i], P[i].T)/self.n[i] for i in S)
         self.iB0 = pinv(B0)
         df = np.matmul(self.iB0, pi - p0)
-        return df[1:m]-df[0]
+        return df[1:m] - df[0]
 
     # ======================================================================================
     def _reweight(self, u, y):
         S = range(self.m)
         pi = self.pi
+        P = self.P
+        pm = self.pm
+        b = self.b
 
         w = [np.exp(self.u0[i] - u[i]) for i in S]
         z = [w[i]*y[i] for i in S]
 
-        w0 = sum(pi[i]*np.mean(w[i], axis=1) for i in S).item(0)
-        yu = sum(pi[i]*np.mean(z[i], axis=1) for i in S)/w0
+        iw0 = 1.0/sum(pi[i]*np.mean(w[i], axis=1) for i in S)[0]
+        yu = sum(pi[i]*np.mean(z[i], axis=1) for i in S)*iw0
 
-        # MICS covariance matrix of s0 (using stored covariance matrix of p0):
         r = [np.concatenate((z[i], w[i])) for i in S]
         rm = [np.mean(r[i], axis=1) for i in S]
-        s = [np.concatenate((self.P[i], r[i])) for i in S]
-        sm = [np.concatenate((self.pm[i], rm[i])) for i in S]
-        C0 = sum(pi[i]**2*cross_covariance(s[i], sm[i], r[i], rm[i], self.b[i]) for i in S)
-        Sp0r0, Sr0 = np.split(C0, (self.m, ))
+        Sp0r0 = sum(pi[i]**2*cross_covariance(P[i], pm[i], r[i], rm[i], b[i]) for i in S)
+        Sr0 = sum(pi[i]**2*covariance(r[i], rm[i], b[i]) for i in S)
         Ss0 = np.block([[self.Sp0, Sp0r0], [Sp0r0.T, Sr0]])
 
-        # Gradient of yu with respect to s0:
-        pu = sum(pi[i]*np.mean(w[i]*self.P[i], axis=1) for i in S)/w0
-        pytu = sum(pi[i]*np.matmul(self.P[i], z[i].T)/self.n[i] for i in S)/w0
+        pu = sum(pi[i]*np.mean(w[i]*P[i], axis=1) for i in S)*iw0
+        pytu = sum(pi[i]*np.matmul(P[i], z[i].T)/self.n[i] for i in S)*iw0
         G = np.concatenate((np.matmul(self.iB0, np.outer(pu, yu) - pytu),
-                            np.diag(np.ones(len(yu))/w0),
-                            -yu.reshape([1, len(yu)])/w0))
+                            np.diag(np.repeat(iw0, len(yu))),
+                            -yu[np.newaxis, :]*iw0))
 
-        # Covariance matrix of yu:
         Theta = multi_dot([G.T, Ss0, G])
 
         return yu, Theta

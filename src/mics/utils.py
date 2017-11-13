@@ -72,7 +72,7 @@ def pinv(A):
 
 def _SumOfDeviationsPerBlock(y, ym, b):
     m, n = y.shape
-    dy = y - ym.reshape([m, 1])
+    dy = y - ym[:, np.newaxis]
     z = np.cumsum(dy, axis=1)
     B = np.empty([m, n-b+1])
     B[:, 0] = z[:, 0]
@@ -84,7 +84,7 @@ def info(verbose, msg, val=""):
     if verbose:
         if isinstance(val, np.ndarray):
             print(_msg_color + msg + _val_color)
-            x = val if val.ndim > 1 else val.reshape([len(val), 1])
+            x = val if val.ndim > 1 else val[:, np.newaxis]
             print(np.array2string(x) + _no_color)
         else:
             print(_msg_color + msg + _val_color, val, _no_color)
