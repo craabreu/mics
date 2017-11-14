@@ -126,3 +126,35 @@ class mixture:
             result['δ' + p] = dyu[:, i]
 
         return result
+
+    # ======================================================================================
+    def fep(self, potential, conditions=pd.DataFrame(), **kwargs):
+        """
+        Performs free energy perturbation.
+
+        Args:
+            potential (function/string):
+            conditions (pandas.DataFrame):
+            **kwargs:
+
+        """
+        datasets = [s.dataset for s in self.samples]
+
+        N = len(conditions)
+        f = np.empty(N)
+        df = np.empty(N)
+        for j, row in conditions.iterrows():
+            condition = row.to_dict()
+            info(self.verbose, "Condition[%d]:" % j, condition)
+            condition.update(kwargs)
+
+            potfunc = genfunc(potential, self.names, **condition)
+            u = [multimap([potfunc], x) for x in datasets]
+
+            f[j], df[j] = self._perturbation(u)
+
+        result = conditions.copy()
+        result['f'] = f
+        result['δf'] = df
+
+        return result

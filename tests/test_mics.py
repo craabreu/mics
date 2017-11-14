@@ -25,6 +25,8 @@ neff = [100.829779921697, 76.82824014457174, 69.63811023389404, 55.1791921646371
 for i in range(4):
     np.testing.assert_almost_equal(samples[i].neff, neff[i])
 
+# MICS
+
 mixture = mics.MICS(samples, verbose=True)
 
 fe = mixture.free_energies()
@@ -41,6 +43,12 @@ props = mixture.reweighting(potential='beta*E4',
 
 print(props)
 
+fu = mixture.fep(potential='beta*E4', conditions=parameters)
+
+print(fu)
+
+# MBAR
+
 mbar = mics.MBAR(samples, verbose=True, subsample=True)
 fe = mbar.free_energies()
 print(fe)
@@ -49,3 +57,7 @@ props = mbar.reweighting(potential='beta*E4',
                          conditions=parameters)
 
 print(props)
+
+fu = mbar.fep(potential='beta*E4', conditions=parameters)
+
+print(fu)
