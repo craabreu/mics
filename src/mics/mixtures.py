@@ -9,8 +9,6 @@
 
 """
 
-from copy import deepcopy
-
 import numpy as np
 import pandas as pd
 
@@ -40,9 +38,11 @@ class mixture:
 
         info(verbose, "Setting up %s case:" % type(self).__name__, title)
 
-        self.samples = deepcopy(samples)
-        self.title = deepcopy(title)
-        self.verbose = deepcopy(verbose)
+        self.samples = samples
+        self.title = title
+        self.verbose = verbose
+        self.states = [s.title if s.title else 'State %d' % (i+1)
+                       for (i, s) in enumerate(samples)]
 
         m = self.m = len(samples)
         if m == 0:
@@ -76,13 +76,12 @@ class mixture:
 
         """
         df = np.sqrt(np.diag(self.Theta) - 2*self.Theta[:, 0] + self.Theta[0, 0])
-
-        return pd.DataFrame(data={'f': self.f, 'δf': df})
+        return pd.DataFrame(data={'State': self.states, 'f': self.f, 'δf': df})
 
     # ======================================================================================
     def reweighting(self,
                     potential,
-                    properties={},
+                    properties,
                     combinations={},
                     conditions=pd.DataFrame(),
                     **kwargs):
@@ -100,11 +99,8 @@ class mixture:
         """
         datasets = [s.dataset for s in self.samples]
 
-        if properties:
-            functions = [genfunc(p, self.names, **kwargs) for p in properties.values()]
-            y = [multimap(functions, x) for x in datasets]
-        else:
-            y = None
+        functions = [genfunc(p, self.names, **kwargs) for p in properties.values()]
+        y = [multimap(functions, x) for x in datasets]
 
         N = len(conditions)
         yu = np.empty([N, len(properties)])
@@ -158,3 +154,14 @@ class mixture:
         result['δf'] = df
 
         return result
+
+    # ======================================================================================
+    def histograms(self, bins=100):
+        u0 = self.u0
+        u0min = min([np.amin(x) for x in u0])
+        u0max = max([np.amax(x) for x in u0])
+        center = [u0min + (u0max - u0min)*(i + 0.5)/bins for i in range(bins)]
+        df = pd.DataFrame({'u0': center})
+        for i in range(self.m):
+            df[self.states[i]] = np.histogram(u0[i], bins, (u0min, u0max))[0]
+        return df

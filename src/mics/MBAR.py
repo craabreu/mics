@@ -34,7 +34,7 @@ class MBAR(mixture):
 
     # ======================================================================================
     def __init__(self, samples, title="Untitled", verbose=False, tol=1.0E-8,
-                 subsample=False, compute_acf=True):
+                 subsample=True, compute_acf=True):
 
         m, n, neff = self._definitions(samples, title, verbose)
 
@@ -49,10 +49,20 @@ class MBAR(mixture):
                     new = timeseries.subsampleCorrelatedData(s.autocorr(s.dataset))
                 else:
                     new = timeseries.subsampleCorrelatedData(old, g=n[i]/neff[i])
-                s.dataset.drop([k for k in old if k not in set(new)], inplace=True)
+                s.dataset = s.dataset.loc[new]
                 self.u[i] = self.u[i][:, new]
                 n[i] = len(new)
             info(verbose, "Subsampled dataset sizes:", str(n))
+        else:
+            info(verbose, "Subsampling method:", "none")
+
+        self.u0 = []
+        g = (self.f + np.log(n/sum(n)))[:, np.newaxis]
+        for i in range(m):
+            x = g - self.u[i]
+            xmax = np.amax(x, axis=0)
+            numer = np.exp(x - xmax)
+            self.u0.append(-(xmax + np.log(np.sum(numer, axis=0))))
 
         self.u = np.hstack(self.u)
         mb = self.MBAR = mbar.MBAR(self.u, n, relative_tolerance=tol, initial_f_k=self.f)

@@ -41,10 +41,11 @@ class sample:
 
     """
 
-    def __init__(self, dataset, potential, autocorr=None, batchsize=None, **kwargs):
+    def __init__(self, dataset, potential, autocorr=None, batchsize=None, title=None, **kwargs):
         names = list(dataset.columns)
         self.dataset = dataset
         self.potential = genfunc(potential, names, **kwargs)
+        self.title = title
         n = self.n = dataset.shape[0]
         b = self.b = batchsize if batchsize else int(np.sqrt(n))
         self.autocorr = genfunc(autocorr, names, **kwargs) if autocorr else self.potential
