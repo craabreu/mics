@@ -41,7 +41,7 @@ class sample:
 
     """
 
-    def __init__(self, dataset, potential, autocorr=None, batchsize=None, title=None, **kwargs):
+    def __init__(self, dataset, potential, autocorr=None, batchsize=None, title=None, verbose=False, **kwargs):
         names = list(dataset.columns)
         self.dataset = dataset
         self.potential = genfunc(potential, names, **kwargs)
@@ -56,3 +56,31 @@ class sample:
         if not (np.isfinite(S1) and np.isfinite(Sb)):
             raise FloatingPointError("unable to determine effective sample size")
         self.neff = n*S1/Sb
+
+
+class sampleset:
+    """
+    A set of independently collected samples.
+
+    """
+    samples = []
+
+    def __init__(self, samples=[], verbose=False):
+        self.samples = samples
+        self.verbose = verbose
+
+    def add(self, dataset, potential, autocorr=None, batchsize=None, title=None, **kwargs):
+        """
+        Add a new sample to the set.
+
+        """
+
+        t = title if title else 'State %d' % (len(self.samples) + 1)
+        s = sample(dataset, potential, autocorr, batchsize, t, self.verbose, **kwargs)
+        self.samples.append(s)
+
+    def __getitem__(self, i):
+        return self.samples[i]
+
+    def __len__(self):
+        return len(self.samples)
