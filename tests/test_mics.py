@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 import numpy as np
 import pandas as pd
 
@@ -13,7 +12,7 @@ m = 4
 beta = 1.6773985789
 data = ["tests/data/log_%d.dat" % (i + 1) for i in range(m)]
 
-samples = mics.sampleset()
+samples = mics.pool()
 for i in range(m):
     dataset = pd.read_csv(data[i], sep=' ')
     potential = "beta*E%d" % (i + 1)
@@ -31,8 +30,8 @@ mixture = mics.MICS(samples, verbose=True)
 fe = mixture.free_energies()
 print(fe)
 
-np.testing.assert_almost_equal(fe['f'][m-1], 3.6251084520815593)
-np.testing.assert_almost_equal(fe['δf'][m-1], 0.16158119695537948)
+np.testing.assert_almost_equal(fe['f'][m], 3.6251084520815593)
+np.testing.assert_almost_equal(fe['df'][m], 0.16158119695537948)
 
 parameters = pd.DataFrame({"beta": beta*np.linspace(0.8, 1.2, 5)})
 

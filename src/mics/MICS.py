@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 .. module:: mixtures
    :platform: Unix, Windows

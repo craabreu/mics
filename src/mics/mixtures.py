@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 .. module:: mixtures
    :platform: Unix, Windows
@@ -12,6 +11,7 @@
 import numpy as np
 import pandas as pd
 
+import mics as mx
 from mics.utils import genfunc
 from mics.utils import info
 from mics.utils import multimap
@@ -38,16 +38,19 @@ class mixture:
 
         info(verbose, "Setting up %s case:" % type(self).__name__, title)
 
-        self.samples = samples
-        self.title = title
-        self.verbose = verbose
-        self.states = [s.title if s.title else 'State %d' % (i+1)
-                       for (i, s) in enumerate(samples)]
-
         m = self.m = len(samples)
         if m == 0:
             raise ValueError("list of samples is empty")
         info(verbose, "Number of samples:", m)
+
+        if type(samples) is mx.pool:
+            self.samples = samples.samples
+            self.label = samples.label
+        else:
+            self.samples = samples
+            self.label = ""
+        self.title = title
+        self.verbose = verbose
 
         names = self.names = list(samples[0].dataset.columns)
         if any(list(s.dataset.columns) != names for s in samples):
@@ -66,6 +69,13 @@ class mixture:
         self.f = overlapSampling(self.u)
         info(verbose, "Initial free-energy guess:", self.f)
 
+        self.frame = pd.DataFrame(index=np.arange(m) + 1)
+        if self.label:
+            self.states = ["%s = %s" % (self.label, s.label) for s in samples]
+            self.frame[self.label] = [s.label for s in samples]
+        else:
+            self.states = ["state %d" % (i+1) for i in range(m)]
+
         return m, n, neff
 
     # ======================================================================================
@@ -75,8 +85,10 @@ class mixture:
         of a `mixture`, as well as their standard errors.
 
         """
-        df = np.sqrt(np.diag(self.Theta) - 2*self.Theta[:, 0] + self.Theta[0, 0])
-        return pd.DataFrame(data={'State': self.states, 'f': self.f, 'δf': df})
+        frame = self.frame.copy()
+        frame['f'] = self.f
+        frame['df'] = np.sqrt(np.diag(self.Theta) - 2*self.Theta[:, 0] + self.Theta[0, 0])
+        return frame
 
     # ======================================================================================
     def reweighting(self,
@@ -116,12 +128,12 @@ class mixture:
             yu[j, :], Theta = self._reweight(u, y)
             dyu[j, :] = np.sqrt(Theta.diagonal())
 
-        result = conditions.copy()
+        frame = conditions.copy()
         for (i, p) in enumerate(properties.keys()):
-            result[p] = yu[:, i]
-            result['δ' + p] = dyu[:, i]
+            frame[p] = yu[:, i]
+            frame['d' + p] = dyu[:, i]
 
-        return result
+        return frame
 
     # ======================================================================================
     def fep(self, potential, conditions=pd.DataFrame(), **kwargs):
@@ -149,11 +161,11 @@ class mixture:
 
             f[j], df[j] = self._perturbation(u)
 
-        result = conditions.copy()
-        result['f'] = f
-        result['δf'] = df
+        frame = conditions.copy()
+        frame['f'] = f
+        frame['df'] = df
 
-        return result
+        return frame
 
     # ======================================================================================
     def histograms(self, bins=100):
@@ -161,7 +173,7 @@ class mixture:
         u0min = min([np.amin(x) for x in u0])
         u0max = max([np.amax(x) for x in u0])
         center = [u0min + (u0max - u0min)*(i + 0.5)/bins for i in range(bins)]
-        df = pd.DataFrame({'u0': center})
+        frame = pd.DataFrame({'u0': center})
         for i in range(self.m):
-            df[self.states[i]] = np.histogram(u0[i], bins, (u0min, u0max))[0]
-        return df
+            frame[self.states[i]] = np.histogram(u0[i], bins, (u0min, u0max))[0]
+        return frame

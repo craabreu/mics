@@ -36,7 +36,7 @@ def genfunc(expr, names, **kwargs):
             local_dict = kwargs.copy()
             for name in names:
                 local_dict[name] = variables[name] = Symbol("x." + name)
-            func = parse_expr(expr, local_dict)
+            func = parse_expr(expr, local_dict, evaluate=False)
         except SyntaxError:
             raise SyntaxError(red("unable to parse expression '%s'" % expr))
         if [s for s in func.free_symbols if s not in variables.values()]:
@@ -96,7 +96,7 @@ def cross_covariance(y, ym, z, zm, b):
 # ==========================================================================================
 def logsumexp(x):
     xmax = np.amax(x)
-    return xmax + np.log(np.sum(np.exp(x - xmax)))
+    return xmax + np.log(np.sum(np.exp(x - xmax), axis=0))
 
 
 # ==========================================================================================

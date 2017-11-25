@@ -41,11 +41,11 @@ class sample:
 
     """
 
-    def __init__(self, dataset, potential, autocorr=None, batchsize=None, title=None, verbose=False, **kwargs):
+    def __init__(self, dataset, potential, autocorr=None, batchsize=None, label="", **kwargs):
         names = list(dataset.columns)
         self.dataset = dataset
         self.potential = genfunc(potential, names, **kwargs)
-        self.title = title
+        self.label = str(label)
         n = self.n = dataset.shape[0]
         b = self.b = batchsize if batchsize else int(np.sqrt(n))
         self.autocorr = genfunc(autocorr, names, **kwargs) if autocorr else self.potential
@@ -58,25 +58,23 @@ class sample:
         self.neff = n*S1/Sb
 
 
-class sampleset:
+class pool:
     """
     A set of independently collected samples.
 
     """
-    samples = []
 
-    def __init__(self, samples=[], verbose=False):
+    def __init__(self, samples=[], label=""):
         self.samples = samples
-        self.verbose = verbose
+        self.label = str(label)
 
-    def add(self, dataset, potential, autocorr=None, batchsize=None, title=None, **kwargs):
+    def add(self, dataset, potential, autocorr=None, batchsize=None, label="", **kwargs):
         """
         Add a new sample to the set.
 
         """
 
-        t = title if title else 'State %d' % (len(self.samples) + 1)
-        s = sample(dataset, potential, autocorr, batchsize, t, self.verbose, **kwargs)
+        s = sample(dataset, potential, autocorr, batchsize, label, **kwargs)
         self.samples.append(s)
 
     def __getitem__(self, i):

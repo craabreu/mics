@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 .. module:: MBAR
    :platform: Unix, Windows
@@ -15,6 +14,7 @@ from pymbar import timeseries
 
 from mics.mixtures import mixture
 from mics.utils import info
+from mics.utils import logsumexp
 
 
 class MBAR(mixture):
@@ -56,13 +56,8 @@ class MBAR(mixture):
         else:
             info(verbose, "Subsampling method:", "none")
 
-        self.u0 = []
         g = (self.f + np.log(n/sum(n)))[:, np.newaxis]
-        for i in range(m):
-            x = g - self.u[i]
-            xmax = np.amax(x, axis=0)
-            numer = np.exp(x - xmax)
-            self.u0.append(-(xmax + np.log(np.sum(numer, axis=0))))
+        self.u0 = [-logsumexp(g - x) for x in self.u]
 
         self.u = np.hstack(self.u)
         mb = self.MBAR = mbar.MBAR(self.u, n, relative_tolerance=tol, initial_f_k=self.f)
