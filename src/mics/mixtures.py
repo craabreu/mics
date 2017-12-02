@@ -60,7 +60,7 @@ class mixture:
         n = self.n = np.array([s.dataset.shape[0] for s in samples])
         info(verbose, "Sample sizes:", str(self.n))
 
-        neff = np.array([s.neff for s in samples])
+        neff = self.neff = np.array([s.neff for s in samples])
         info(verbose, "Effective sample sizes:", neff)
 
         potentials = [s.potential for s in samples]
@@ -109,34 +109,20 @@ class mixture:
             **kwargs:
 
         """
-        datasets = [s.dataset for s in self.samples]
-
+        info(self.verbose, "Potential:", potential)
         functions = [genfunc(p, self.names, **kwargs) for p in properties.values()]
-        y = [multimap(functions, x) for x in datasets]
-
-        N = len(conditions)
-        yu = np.empty([N, len(properties)])
-        dyu = np.empty([N, len(properties)])
-        for j, row in conditions.iterrows():
-            condition = row.to_dict()
-            info(self.verbose, "Condition[%d]:" % j, condition)
-            condition.update(kwargs)
-
-            potfunc = genfunc(potential, self.names, **condition)
-            u = [multimap([potfunc], x) for x in datasets]
-
-            yu[j, :], Theta = self._reweight(u, y)
-            dyu[j, :] = np.sqrt(Theta.diagonal())
-
-        frame = conditions.copy()
-        for (i, p) in enumerate(properties.keys()):
-            frame[p] = yu[:, i]
-            frame['d' + p] = dyu[:, i]
-
-        return frame
+        y = [multimap(functions, s.dataset) for s in self.samples]
+        results = list()
+        for u in self.cases(potential, conditions, **kwargs):
+            yu, Theta = self._reweight(u, y)
+            dyu = np.sqrt(np.diagonal(Theta))
+            results.append(np.stack([yu, dyu]).T.flatten())
+        header = sum([[p, 'd'+p] for p in properties.keys()], [])
+        frame = pd.DataFrame(results, columns=header)
+        return frame if conditions.empty else pd.concat([conditions, frame], axis=1)
 
     # ======================================================================================
-    def fep(self, potential, conditions=pd.DataFrame(), **kwargs):
+    def fep(self, potential, conditions=pd.DataFrame(), reference=0, **kwargs):
         """
         Performs free energy perturbation.
 
@@ -146,26 +132,12 @@ class mixture:
             **kwargs:
 
         """
-        datasets = [s.dataset for s in self.samples]
-
-        N = len(conditions)
-        f = np.empty(N)
-        df = np.empty(N)
-        for j, row in conditions.iterrows():
-            condition = row.to_dict()
-            info(self.verbose, "Condition[%d]:" % j, condition)
-            condition.update(kwargs)
-
-            potfunc = genfunc(potential, self.names, **condition)
-            u = [multimap([potfunc], x) for x in datasets]
-
-            f[j], df[j] = self._perturbation(u)
-
-        frame = conditions.copy()
-        frame['f'] = f
-        frame['df'] = df
-
-        return frame
+        info(self.verbose, "Potential:", potential)
+        results = list()
+        for u in self.cases(potential, conditions, **kwargs):
+            results.append(self._perturbation(u, reference))
+        frame = pd.DataFrame(results, columns=['f', 'df'])
+        return frame if conditions.empty else pd.concat([conditions, frame], axis=1)
 
     # ======================================================================================
     def histograms(self, bins=100):
@@ -177,3 +149,16 @@ class mixture:
         for i in range(self.m):
             frame[self.states[i]] = np.histogram(u0[i], bins, (u0min, u0max))[0]
         return frame
+
+    # ======================================================================================
+    def cases(self, potential, conditions, **kwargs):
+        if conditions.empty:
+            potfunc = genfunc(potential, self.names, **kwargs)
+            yield [multimap([potfunc], s.dataset) for s in self.samples]
+        else:
+            for j, row in conditions.iterrows():
+                condition = row.to_dict()
+                info(self.verbose, "Condition[%d]:" % j, condition)
+                condition.update(kwargs)
+                potfunc = genfunc(potential, self.names, **condition)
+                yield [multimap([potfunc], s.dataset) for s in self.samples]

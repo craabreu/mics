@@ -115,7 +115,7 @@ class MICS(mixture):
         return yu, Theta
 
     # ======================================================================================
-    def _perturbation(self, u):
+    def _perturbation(self, u, ref=0):
         S = range(self.m)
         pi = self.pi
         P = self.P
@@ -131,10 +131,10 @@ class MICS(mixture):
         Ss0 = np.block([[self.Sp0, Sp0w0], [Sp0w0.T, Sw0]])
 
         pu = sum(pi[i]*np.mean(w[i]*P[i], axis=1) for i in S)*iw0
-        pu[0] -= 1.0
+        pu[ref] -= 1.0
         G = np.append(np.matmul(self.iB0, pu[:, np.newaxis]), iw0)
 
-        f = np.log(iw0)
+        f = np.log(iw0) - self.f[ref]
         df = np.sqrt(multi_dot([G.T, Ss0, G]))
 
         return f, df

@@ -89,7 +89,7 @@ class MBAR(mixture):
         return yu, Theta
 
     # ======================================================================================
-    def _perturbation(self, u):
-        u_ln = np.stack([self.u[0, :], np.hstack(u).flatten()])
+    def _perturbation(self, u, ref=0):
+        u_ln = np.stack([self.u[ref, :], np.hstack(u).flatten()])
         f, df = self.MBAR.computePerturbedFreeEnergies(u_ln, compute_uncertainty=True)
         return f[0, 1], df[0, 1]
