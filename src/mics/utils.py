@@ -9,6 +9,8 @@
 """
 
 import numpy as np
+import pandas as pd
+from sympy import Matrix
 from sympy import Symbol
 from sympy.parsing.sympy_parser import parse_expr
 from sympy.utilities.lambdify import lambdify
@@ -19,32 +21,63 @@ _no_color = "\033[0m"
 
 
 # ==========================================================================================
+def red(s):
+    return "\033[1;31m" + s + "\033[0m"
+
+
+# ==========================================================================================
+def parse_func(expr, variables, constants):
+    local_dict = variables.copy()
+    local_dict.update(constants)
+
+    try:
+        func = parse_expr(expr, local_dict)
+    except SyntaxError:
+        raise SyntaxError(red("unable to parse expression '%s'" % expr))
+
+    symbols = func.free_symbols
+    if not symbols:
+        def f(x):
+            return pd.Series(np.full(x.shape[0], func.evalf()))
+        return f
+
+    elif [s for s in symbols if s not in variables.values()]:
+        raise ValueError(red("unspecified parameters found in expression '%s'" % expr))
+
+    else:
+        return lambdify("x", func, ["numpy"])
+
+
+# ==========================================================================================
 def genfunc(expr, names, **kwargs):
     """
     Returns a function based on the passed argument.
     """
-    def red(s):
-        return "\033[1;31m" + s + "\033[0m"
     if callable(expr):
         def func(x):
             return expr(x, **kwargs)
         return func
 
     elif isinstance(expr, str):
-        try:
-            variables = {}
-            local_dict = kwargs.copy()
-            for name in names:
-                local_dict[name] = variables[name] = Symbol("x." + name)
-            func = parse_expr(expr, local_dict, evaluate=False)
-        except SyntaxError:
-            raise SyntaxError(red("unable to parse expression '%s'" % expr))
-        if [s for s in func.free_symbols if s not in variables.values()]:
-            raise ValueError(red("unspecified parameters found in expression '%s'" % expr))
-        return lambdify("x", func, ["numpy"])
+        variables = {}
+        for name in names:
+            variables[name] = Symbol("x." + name)
+        return parse_func(expr, variables, kwargs)
 
     else:
         raise ValueError(red("passed argument is neither a callable object nor a string"))
+
+
+# ==========================================================================================
+def jacobian(functions, names, **kwargs):
+    variables = {}
+    local_dict = kwargs.copy()
+    for name in names:
+        local_dict[name] = variables[name] = Symbol(name)
+    f = Matrix([parse_expr(expr, local_dict) for expr in functions])
+    x = Matrix(list(variables.values()))
+    J = f.jacobian(x)
+    return J
 
 
 # ==========================================================================================
