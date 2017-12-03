@@ -18,34 +18,7 @@ from sympy.utilities.lambdify import lambdify
 _msg_color = "\033[1;33m"
 _val_color = "\033[0;33m"
 _no_color = "\033[0m"
-
-
-# ==========================================================================================
-def red(s):
-    return "\033[1;31m" + s + "\033[0m"
-
-
-# ==========================================================================================
-def parse_func(expr, variables, constants):
-    local_dict = variables.copy()
-    local_dict.update(constants)
-
-    try:
-        func = parse_expr(expr, local_dict)
-    except SyntaxError:
-        raise SyntaxError(red("unable to parse expression '%s'" % expr))
-
-    symbols = func.free_symbols
-    if not symbols:
-        def f(x):
-            return pd.Series(np.full(x.shape[0], func.evalf()))
-        return f
-
-    elif [s for s in symbols if s not in variables.values()]:
-        raise ValueError(red("unspecified parameters found in expression '%s'" % expr))
-
-    else:
-        return lambdify("x", func, ["numpy"])
+_red = "\033[1;31m"
 
 
 # ==========================================================================================
@@ -62,22 +35,36 @@ def genfunc(expr, names, **kwargs):
         variables = {}
         for name in names:
             variables[name] = Symbol("x." + name)
-        return parse_func(expr, variables, kwargs)
+        local_dict = variables.copy()
+        local_dict.update(kwargs)
+        try:
+            func = parse_expr(expr, local_dict)
+        except SyntaxError:
+            raise SyntaxError(_red + "unable to parse '%s'" % expr + _no_color)
+
+        symbols = func.free_symbols
+        if not symbols:
+            def f(x):
+                return pd.Series(np.full(x.shape[0], func.evalf()))
+            return f
+        elif [s for s in symbols if s not in variables.values()]:
+            raise ValueError(_red + "unknown parameters in '%s'" % expr + _no_color)
+        else:
+            return lambdify("x", func, ["numpy"])
 
     else:
-        raise ValueError(red("passed argument is neither a callable object nor a string"))
+        raise ValueError(_red + "passed arg is neither callable nor a string" + _no_color)
 
 
 # ==========================================================================================
 def jacobian(functions, names, **kwargs):
     variables = {}
     local_dict = kwargs.copy()
-    for name in names:
-        local_dict[name] = variables[name] = Symbol(name)
+    for i, name in enumerate(names):
+        local_dict[name] = variables[name] = Symbol("x[%d]" % i)
     f = Matrix([parse_expr(expr, local_dict) for expr in functions])
     x = Matrix(list(variables.values()))
-    J = f.jacobian(x)
-    return J
+    return lambdify("x", f), lambdify("x", f.jacobian(x))
 
 
 # ==========================================================================================

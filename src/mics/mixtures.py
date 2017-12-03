@@ -10,6 +10,7 @@
 
 import numpy as np
 import pandas as pd
+from numpy.linalg import multi_dot
 
 import mics as mx
 from mics.utils import genfunc
@@ -129,27 +130,26 @@ class mixture:
         functions = [genfunc(p, self.names, **kwargs) for p in properties.values()]
         y = [multimap(functions, s.dataset) for s in self.samples]
 
+        names = list(properties.keys())
+        if combinations:
+            func, Jac = jacobian(combinations.values(), names, **kwargs)
+            names += list(combinations.keys())
+
         results = list()
         for u in self._cases(potential, conditions, **kwargs):
             yu, Theta = self._reweight(u, y)
             dyu = np.sqrt(np.diagonal(Theta))
-            results.append(np.stack([yu, dyu]).T.flatten())
-        header = sum([[p, 'd'+p] for p in properties.keys()], [])
-        frame = pd.DataFrame(results, columns=header)
+            if (combinations):
+                g = func(yu).flatten()
+                J = Jac(yu)
+                dg = np.sqrt(np.diagonal(multi_dot([J, Theta, J.T])))
+                results.append(np.block([[yu, g], [dyu, dg]]).T.flatten())
+            else:
+                results.append(np.stack([yu, dyu]).T.flatten())
 
-        if combinations:
-            names = list(properties.keys())
-            functions = list(combinations.values())
-            J = jacobian(functions, names, **kwargs)
-            print(J)
+        frame = pd.DataFrame(results, columns=sum([[p, 'd'+p] for p in names], []))
 
-            results = list()
-            for key, value in combinations.items():
-                series = genfunc(value, names, **kwargs)(frame)
-                results.append(series.to_frame(key))
-            return pd.concat([conditions, frame] + results, axis=1)
-        else:
-            return pd.concat([conditions, frame], axis=1)
+        return pd.concat([conditions, frame], axis=1)
 
     # ======================================================================================
     def fep(self, potential, conditions=pd.DataFrame(), reference=0, **kwargs):

@@ -52,7 +52,7 @@ fe = mbar.free_energies()
 print(fe)
 props = mbar.reweighting(potential='beta*E4',
                          properties={'P': 'Press', 'PE': 'PotEng', 'KE': 'KinEng'},
-                         combinations={'E': 'PE+KE', 'L': '2*P**2/KE', 'X': '7'},
+                         combinations={'E': 'PE+KE', 'L': '2*P**2/KE'},
                          conditions=parameters)
 
 print(props)
