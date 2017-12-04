@@ -13,6 +13,7 @@ import pandas as pd
 from numpy.linalg import multi_dot
 
 import mics as mx
+from mics.utils import cases
 from mics.utils import genfunc
 from mics.utils import info
 from mics.utils import jacobian
@@ -81,19 +82,6 @@ class mixture:
         return m, n, neff
 
     # ======================================================================================
-    def _cases(self, potential, conditions, **kwargs):
-        if conditions.empty:
-            potfunc = genfunc(potential, self.names, **kwargs)
-            yield [multimap([potfunc], s.dataset) for s in self.samples]
-        else:
-            for j, row in conditions.iterrows():
-                condition = row.to_dict()
-                info(self.verbose, "Condition[%d]:" % j, condition)
-                condition.update(kwargs)
-                potfunc = genfunc(potential, self.names, **condition)
-                yield [multimap([potfunc], s.dataset) for s in self.samples]
-
-    # ======================================================================================
     def free_energies(self, reference=0):
         """
         Returns a data frame containing the relative free energies of the datasetd samples
@@ -131,15 +119,23 @@ class mixture:
         y = [multimap(functions, s.dataset) for s in self.samples]
 
         names = list(properties.keys())
-        if combinations:
-            func, Jac = jacobian(combinations.values(), names, **kwargs)
-            names += list(combinations.keys())
+        try:
+            func, Jac = jacobian(combinations.values(), names, kwargs)
+            jacobian_needed = False
+        except:
+            jacobian_needed = True
 
         results = list()
-        for u in self._cases(potential, conditions, **kwargs):
+        for constants in cases(potential, conditions, kwargs, self.verbose):
+            potfunc = genfunc(potential, self.names, **constants)
+            u = [multimap([potfunc], s.dataset) for s in self.samples]
+
             yu, Theta = self._reweight(u, y)
             dyu = np.sqrt(np.diagonal(Theta))
+
             if (combinations):
+                if jacobian_needed:
+                    func, Jac = jacobian(combinations.values(), names, constants)
                 g = func(yu).flatten()
                 J = Jac(yu)
                 dg = np.sqrt(np.diagonal(multi_dot([J, Theta, J.T])))
@@ -147,7 +143,8 @@ class mixture:
             else:
                 results.append(np.stack([yu, dyu]).T.flatten())
 
-        frame = pd.DataFrame(results, columns=sum([[p, 'd'+p] for p in names], []))
+        header = sum([[p, 'd'+p] for p in names + list(combinations.keys())], [])
+        frame = pd.DataFrame(results, columns=header)
 
         return pd.concat([conditions, frame], axis=1)
 
@@ -164,7 +161,9 @@ class mixture:
         """
         info(self.verbose, "Potential:", potential)
         results = list()
-        for u in self._cases(potential, conditions, **kwargs):
+        for constants in cases(potential, conditions, kwargs, self.verbose):
+            potfunc = genfunc(potential, self.names, **constants)
+            u = [multimap([potfunc], s.dataset) for s in self.samples]
             results.append(self._perturbation(u, reference))
         frame = pd.DataFrame(results, columns=['f', 'df'])
         return pd.concat([conditions, frame], axis=1)

@@ -51,9 +51,10 @@ mbar = mics.MBAR(samples, verbose=True, subsample=True)
 fe = mbar.free_energies()
 print(fe)
 props = mbar.reweighting(potential='beta*E4',
-                         properties={'P': 'Press', 'PE': 'PotEng', 'KE': 'KinEng'},
-                         combinations={'E': 'PE+KE', 'L': '2*P**2/KE'},
-                         conditions=parameters)
+                         properties={'E': 'PotEng + KinEng', 'E2': '(PotEng + KinEng)**2'},
+                         combinations={'Cv': 'kB*beta**2*(E2 - E**2)'},
+                         conditions=parameters,
+                         kB=1.987E-3)
 
 print(props)
 

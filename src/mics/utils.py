@@ -22,6 +22,19 @@ _red = "\033[1;31m"
 
 
 # ==========================================================================================
+def parse_func(function, variables, constants):
+    local_dict = variables.copy()
+    local_dict.update(constants)
+    try:
+        func = parse_expr(function, local_dict)
+    except SyntaxError:
+        raise SyntaxError(_red + "unable to parse '%s'" % function + _no_color)
+    if [s for s in func.free_symbols if s not in variables.values()]:
+        raise ValueError(_red + "unknown parameters in '%s'" % function + _no_color)
+    return func
+
+
+# ==========================================================================================
 def genfunc(expr, names, **kwargs):
     """
     Returns a function based on the passed argument.
@@ -32,39 +45,37 @@ def genfunc(expr, names, **kwargs):
         return func
 
     elif isinstance(expr, str):
-        variables = {}
-        for name in names:
-            variables[name] = Symbol("x." + name)
-        local_dict = variables.copy()
-        local_dict.update(kwargs)
-        try:
-            func = parse_expr(expr, local_dict)
-        except SyntaxError:
-            raise SyntaxError(_red + "unable to parse '%s'" % expr + _no_color)
-
-        symbols = func.free_symbols
-        if not symbols:
+        variables = dict((name, Symbol("x." + name)) for name in names)
+        func = parse_func(expr, variables, kwargs)
+        if func.free_symbols:
+            return lambdify("x", func, ["numpy"])
+        else:
             def f(x):
                 return pd.Series(np.full(x.shape[0], func.evalf()))
             return f
-        elif [s for s in symbols if s not in variables.values()]:
-            raise ValueError(_red + "unknown parameters in '%s'" % expr + _no_color)
-        else:
-            return lambdify("x", func, ["numpy"])
 
     else:
         raise ValueError(_red + "passed arg is neither callable nor a string" + _no_color)
 
 
 # ==========================================================================================
-def jacobian(functions, names, **kwargs):
-    variables = {}
-    local_dict = kwargs.copy()
-    for i, name in enumerate(names):
-        local_dict[name] = variables[name] = Symbol("x[%d]" % i)
-    f = Matrix([parse_expr(expr, local_dict) for expr in functions])
+def jacobian(functions, names, constants):
+    variables = dict((name, Symbol("x[%d]" % i)) for (i, name) in enumerate(names))
+    f = Matrix([parse_func(expr, variables, constants) for expr in functions])
     x = Matrix(list(variables.values()))
     return lambdify("x", f), lambdify("x", f.jacobian(x))
+
+
+# ==========================================================================================
+def cases(potential, conditions, constants, verbose):
+    if conditions.empty:
+        yield constants
+    else:
+        for j, row in conditions.iterrows():
+            condition = row.to_dict()
+            info(verbose, "Condition[%d]:" % j, condition)
+            condition.update(constants)
+            yield condition
 
 
 # ==========================================================================================
