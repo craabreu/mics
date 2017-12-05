@@ -38,14 +38,16 @@ class mixture:
     """
 
     # ======================================================================================
-    def _definitions(self, samples, title, verbose):
+    def __define__(self, samples, title, verbose):
 
-        info(verbose, "Setting up %s case:" % type(self).__name__, title)
+        self.title = title
+        self.method = type(self).__name__
+        verbose and info("Setting up %s case:" % self.method, title)
 
         m = self.m = len(samples)
         if m == 0:
             raise ValueError("list of samples is empty")
-        info(verbose, "Number of samples:", m)
+        verbose and info("Number of samples:", m)
 
         if type(samples) is pool:
             self.samples = samples.samples
@@ -53,25 +55,23 @@ class mixture:
         else:
             self.samples = samples
             self.label = ""
-        self.title = title
-        self.verbose = verbose
 
         names = self.names = list(samples[0].dataset.columns)
         if any(list(s.dataset.columns) != names for s in samples):
             raise ValueError("provided samples have distinct properties")
-        info(verbose, "Properties:", ", ".join(names))
+        verbose and info("Properties:", ", ".join(names))
 
         n = self.n = np.array([s.dataset.shape[0] for s in samples])
-        info(verbose, "Sample sizes:", str(self.n))
+        verbose and info("Sample sizes:", str(self.n))
 
         neff = self.neff = np.array([s.neff for s in samples])
-        info(verbose, "Effective sample sizes:", neff)
+        verbose and info("Effective sample sizes:", neff)
 
         potentials = [s.potential for s in samples]
         self.u = [multimap(potentials, s.dataset) for s in samples]
 
         self.f = overlapSampling(self.u)
-        info(verbose, "Initial free-energy guess:", self.f)
+        verbose and info("Initial free-energy guess:", self.f)
 
         self.frame = pd.DataFrame(index=np.arange(m) + 1)
         if self.label:
@@ -109,6 +109,7 @@ class mixture:
                     properties,
                     combinations={},
                     conditions=pd.DataFrame(),
+                    verbose=False,
                     **kwargs):
         """
         Performs reweighting of the properties computed by `functions` from the mixture to
@@ -122,7 +123,8 @@ class mixture:
             **kwargs:
 
         """
-        info(self.verbose, "Potential:", potential)
+        verbose and info("Performing reweighting in %s case:" % self.method, self.title)
+        verbose and info("Potential:", potential)
 
         try:
             y = self.compute(properties.values(), kwargs)
@@ -139,11 +141,11 @@ class mixture:
                 jacobian_needed = True
 
         results = list()
-        for constants in cases(potential, conditions, kwargs, self.verbose):
+        for constants in cases(potential, conditions, kwargs, verbose):
             u = self.compute(potential, constants)
             if properties_needed:
                 y = self.compute(properties.values(), constants)
-            yu, Theta = self._reweight(u, y)
+            yu, Theta = self.__reweight__(u, y)
             dyu = np.sqrt(np.diagonal(Theta))
 
             if (combinations):
@@ -160,7 +162,12 @@ class mixture:
         return pd.concat([conditions, pd.DataFrame(results, columns=header)], axis=1)
 
     # ======================================================================================
-    def fep(self, potential, conditions=pd.DataFrame(), reference=0, **kwargs):
+    def fep(self,
+            potential,
+            conditions=pd.DataFrame(),
+            reference=0,
+            verbose=False,
+            **kwargs):
         """
         Performs free energy perturbation.
 
@@ -170,11 +177,12 @@ class mixture:
             **kwargs:
 
         """
-        info(self.verbose, "Potential:", potential)
+        verbose and info("Performing FEP in %s case:" % self.method, self.title)
+        verbose and info("Potential:", potential)
         results = list()
-        for constants in cases(potential, conditions, kwargs, self.verbose):
+        for constants in cases(potential, conditions, kwargs, verbose):
             u = self.compute(potential, constants)
-            results.append(self._perturbation(u, reference))
+            results.append(self.__perturb__(u, reference))
         frame = pd.DataFrame(results, columns=['f', 'd_f'])
         return pd.concat([conditions, frame], axis=1)
 

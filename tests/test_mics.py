@@ -37,11 +37,12 @@ parameters = pd.DataFrame({"beta": beta*np.linspace(0.8, 1.2, 5)})
 
 props = mixture.reweighting(potential='beta*E4',
                             properties={'P': 'Press', 'E': 'PotEng + KinEng'},
-                            conditions=parameters)
+                            conditions=parameters,
+                            verbose=True)
 
 print(props)
 
-fu = mixture.fep(potential='beta*E4', conditions=parameters)
+fu = mixture.fep(potential='beta*E4', conditions=parameters, verbose=True)
 
 print(fu)
 
@@ -54,10 +55,11 @@ props = mbar.reweighting(potential='beta*E4',
                          properties={'E': 'PotEng + KinEng', 'E2': '(PotEng + KinEng)**2'},
                          combinations={'Cv': 'kB*beta**2*(E2 - E**2)'},
                          conditions=parameters,
+                         verbose=True,
                          kB=1.987E-3)
 
 print(props)
 
-fu = mbar.fep(potential='beta*E4', conditions=parameters)
+fu = mbar.fep(potential='beta*E4', conditions=parameters, verbose=True)
 
 print(fu)

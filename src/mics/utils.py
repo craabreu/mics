@@ -78,7 +78,7 @@ def cases(potential, conditions, constants, verbose):
     else:
         for (j, row) in conditions.iterrows():
             condition = row.to_dict()
-            info(verbose, "Condition[%d]:" % j, condition)
+            verbose and info("Condition[%d]:" % j, condition)
             condition.update(constants)
             yield condition
 
@@ -176,14 +176,13 @@ def _SumOfDeviationsPerBlock(y, ym, b):
 
 
 # ==========================================================================================
-def info(verbose, msg, val=""):
-    if verbose:
-        _msg_color = "\033[1;33m"
-        _val_color = "\033[0;33m"
-        _no_color = "\033[0m"
-        if isinstance(val, np.ndarray):
-            print(_msg_color + msg + _val_color)
-            x = val if val.ndim > 1 else val[:, np.newaxis]
-            print(np.array2string(x) + _no_color)
-        else:
-            print(_msg_color + msg + _val_color, val, _no_color)
+def info(msg, val=""):
+    _msg_color = "\033[1;33m"
+    _val_color = "\033[0;33m"
+    _no_color = "\033[0m"
+    if isinstance(val, np.ndarray):
+        print(_msg_color + msg + _val_color)
+        x = val if val.ndim > 1 else val[:, np.newaxis]
+        print(np.array2string(x) + _no_color)
+    else:
+        print(_msg_color + msg + _val_color, val, _no_color)

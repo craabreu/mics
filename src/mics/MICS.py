@@ -36,11 +36,11 @@ class MICS(mixture):
     # ======================================================================================
     def __init__(self, samples, title="Untitled", verbose=False, tol=1.0E-8):
 
-        m, n, neff = self._definitions(samples, title, verbose)
+        m, n, neff = self.__define__(samples, title, verbose)
 
         b = self.b = [s.b for s in samples]
         pi = self.pi = neff/sum(neff)
-        info(verbose, "Mixture composition:", pi)
+        verbose and info("Mixture composition:", pi)
 
         P = self.P = [np.empty([m, k], np.float64) for k in self.n]
         pm = self.pm = [np.empty(m, np.float64) for k in self.n]
@@ -52,14 +52,14 @@ class MICS(mixture):
             iter += 1
             self.f[1:m] += df
             df = self._newton_raphson_iteration()
-        info(verbose, "Free energies after %d iterations:" % iter, self.f)
+        verbose and info("Free energies after %d iterations:" % iter, self.f)
 
         self.Sp0 = sum(pi[i]**2*covariance(P[i], pm[i], b[i]) for i in range(m))
         self.Theta = multi_dot([self.iB0, self.Sp0, self.iB0])
-        info(verbose, "Free-energy covariance matrix:", self.Theta)
+        verbose and info("Free-energy covariance matrix:", self.Theta)
 
         self.Overlap = np.stack(pm)
-        info(verbose, "Overlap matrix:", self.Overlap)
+        verbose and info("Overlap matrix:", self.Overlap)
 
     # ======================================================================================
     def _newton_raphson_iteration(self):
@@ -85,7 +85,7 @@ class MICS(mixture):
         return df[1:m] - df[0]
 
     # ======================================================================================
-    def _reweight(self, u, y):
+    def __reweight__(self, u, y):
         S = range(self.m)
         pi = self.pi
         P = self.P
@@ -115,7 +115,7 @@ class MICS(mixture):
         return yu, Theta
 
     # ======================================================================================
-    def _perturbation(self, u, ref=0):
+    def __perturb__(self, u, ref=0):
         S = range(self.m)
         pi = self.pi
         P = self.P

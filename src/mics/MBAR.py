@@ -36,13 +36,13 @@ class MBAR(mixture):
     def __init__(self, samples, title="Untitled", verbose=False, tol=1.0E-8,
                  subsample=True, compute_acf=True):
 
-        m, n, neff = self._definitions(samples, title, verbose)
+        m, n, neff = self.__define__(samples, title, verbose)
 
         if subsample:
             if compute_acf:
-                info(verbose, "Subsampling method:", "integrated autocorrelation function")
+                verbose and info("Subsampling method:", "integrated ACF")
             else:
-                info(verbose, "Subsampling method:", "overlapping batch means")
+                verbose and info("Subsampling method:", "overlapping batch means")
             for (i, s) in enumerate(self.samples):
                 old = s.dataset.index
                 if compute_acf:
@@ -52,9 +52,9 @@ class MBAR(mixture):
                 s.dataset = s.dataset.loc[new]
                 self.u[i] = self.u[i][:, new]
                 n[i] = len(new)
-            info(verbose, "Subsampled dataset sizes:", str(n))
+            verbose and info("Subsampled dataset sizes:", str(n))
         else:
-            info(verbose, "Subsampling method:", "none")
+            verbose and info("Subsampling method:", "none")
 
         g = (self.f + np.log(n/sum(n)))[:, np.newaxis]
         self.u0 = [-logsumexp(g - x) for x in self.u]
@@ -63,17 +63,17 @@ class MBAR(mixture):
         mb = self.MBAR = mbar.MBAR(self.u, n, relative_tolerance=tol, initial_f_k=self.f)
 
         self.f = mb.f_k
-        info(verbose, "Free energies after convergence:", self.f)
+        verbose and info("Free energies after convergence:", self.f)
 
         Theta = mb._computeAsymptoticCovarianceMatrix(np.exp(mb.Log_W_nk), mb.N_k)
         self.Theta = np.array(Theta)
-        info(verbose, "Free-energy covariance matrix:", self.Theta)
+        verbose and info("Free-energy covariance matrix:", self.Theta)
 
         self.Overlap = mb.N_k*np.matmul(mb.W_nk.T, mb.W_nk)
-        info(verbose, "Overlap matrix:", self.Overlap)
+        verbose and info("Overlap matrix:", self.Overlap)
 
     # ======================================================================================
-    def _reweight(self, u, y):
+    def __reweight__(self, u, y):
         A_n = np.hstack(y)
         u_ln = np.hstack(u).flatten()
         n = A_n.shape[0]
@@ -89,7 +89,7 @@ class MBAR(mixture):
         return yu, Theta
 
     # ======================================================================================
-    def _perturbation(self, u, ref=0):
+    def __perturb__(self, u, ref=0):
         u_ln = np.stack([self.u[ref, :], np.hstack(u).flatten()])
         f, df = self.MBAR.computePerturbedFreeEnergies(u_ln, compute_uncertainty=True)
         return f[0, 1], df[0, 1]
