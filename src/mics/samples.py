@@ -44,11 +44,11 @@ class sample:
     def __init__(self, dataset, potential, autocorr=None, batchsize=None, label="", **kwargs):
         names = list(dataset.columns)
         self.dataset = dataset
-        self.potential = genfunc(potential, names, **kwargs)
+        self.potential = genfunc(potential, names, kwargs)
         self.label = str(label)
         n = self.n = dataset.shape[0]
         b = self.b = batchsize if batchsize else int(np.sqrt(n))
-        self.autocorr = genfunc(autocorr, names, **kwargs) if autocorr else self.potential
+        self.autocorr = genfunc(autocorr, names, kwargs) if autocorr else self.potential
         y = multimap([self.autocorr], dataset)
         ym = np.mean(y, axis=1)
         S1 = covariance(y, ym, 1).item(0)

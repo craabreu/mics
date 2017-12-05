@@ -13,56 +13,61 @@ import pandas as pd
 from sympy import Matrix
 from sympy import Symbol
 from sympy.parsing.sympy_parser import parse_expr
+from sympy.parsing.sympy_tokenize import TokenError
 from sympy.utilities.lambdify import lambdify
-
-_msg_color = "\033[1;33m"
-_val_color = "\033[0;33m"
-_no_color = "\033[0m"
-_red = "\033[1;31m"
 
 
 # ==========================================================================================
-def parse_func(function, variables, constants):
-    local_dict = variables.copy()
+class InputError(Exception):
+    def __init__(self, msg):
+        super(InputError, self).__init__("\033[1;31m" + msg + "\033[0m")
+
+
+# ==========================================================================================
+def parse_func(function, symbols, constants):
+    local_dict = symbols.copy()
     local_dict.update(constants)
     try:
         func = parse_expr(function, local_dict)
-    except SyntaxError:
-        raise SyntaxError(_red + "unable to parse '%s'" % function + _no_color)
-    if [s for s in func.free_symbols if s not in variables.values()]:
-        raise ValueError(_red + "unknown parameters in '%s'" % function + _no_color)
+    except (SyntaxError, TokenError):
+        raise SyntaxError("unable to parse function '%s'" % function)
+    except Exception:
+        raise InputError("unknown constants in function '%s'" % function)
+    if type(func) is not float:
+        if [s for s in func.free_symbols if s not in symbols.values()]:
+            raise InputError("unknown symbols in function '%s'" % function)
     return func
 
 
 # ==========================================================================================
-def genfunc(expr, names, **kwargs):
+def genfunc(function, variables, constants):
     """
     Returns a function based on the passed argument.
     """
-    if callable(expr):
+    if callable(function):
         def func(x):
-            return expr(x, **kwargs)
+            return function(x, **constants)
         return func
 
-    elif isinstance(expr, str):
-        variables = dict((name, Symbol("x." + name)) for name in names)
-        func = parse_func(expr, variables, kwargs)
-        if func.free_symbols:
-            return lambdify("x", func, ["numpy"])
+    elif isinstance(function, str):
+        symbols = dict((v, Symbol("x.%s" % v)) for v in variables)
+        f = parse_func(function, symbols, constants)
+        if f.free_symbols:
+            return lambdify("x", f, ["numpy"])
         else:
-            def f(x):
+            def func(x):
                 return pd.Series(np.full(x.shape[0], func.evalf()))
-            return f
+            return func
 
     else:
-        raise ValueError(_red + "passed arg is neither callable nor a string" + _no_color)
+        raise InputError("passed arg is neither a callable object nor a string")
 
 
 # ==========================================================================================
-def jacobian(functions, names, constants):
-    variables = dict((name, Symbol("x[%d]" % i)) for (i, name) in enumerate(names))
-    f = Matrix([parse_func(expr, variables, constants) for expr in functions])
-    x = Matrix(list(variables.values()))
+def jacobian(functions, variables, constants):
+    symbols = dict((v, Symbol("x[%d]" % i)) for (i, v) in enumerate(variables))
+    f = Matrix([parse_func(expr, symbols, constants) for expr in functions])
+    x = Matrix(list(symbols.values()))
     return lambdify("x", f), lambdify("x", f.jacobian(x))
 
 
@@ -71,7 +76,7 @@ def cases(potential, conditions, constants, verbose):
     if conditions.empty:
         yield constants
     else:
-        for j, row in conditions.iterrows():
+        for (j, row) in conditions.iterrows():
             condition = row.to_dict()
             info(verbose, "Condition[%d]:" % j, condition)
             condition.update(constants)
@@ -173,6 +178,9 @@ def _SumOfDeviationsPerBlock(y, ym, b):
 # ==========================================================================================
 def info(verbose, msg, val=""):
     if verbose:
+        _msg_color = "\033[1;33m"
+        _val_color = "\033[0;33m"
+        _no_color = "\033[0m"
         if isinstance(val, np.ndarray):
             print(_msg_color + msg + _val_color)
             x = val if val.ndim > 1 else val[:, np.newaxis]

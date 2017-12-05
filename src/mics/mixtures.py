@@ -12,7 +12,8 @@ import numpy as np
 import pandas as pd
 from numpy.linalg import multi_dot
 
-import mics as mx
+from mics.samples import pool
+from mics.utils import InputError
 from mics.utils import cases
 from mics.utils import genfunc
 from mics.utils import info
@@ -46,7 +47,7 @@ class mixture:
             raise ValueError("list of samples is empty")
         info(verbose, "Number of samples:", m)
 
-        if type(samples) is mx.pool:
+        if type(samples) is pool:
             self.samples = samples.samples
             self.label = samples.label
         else:
@@ -82,6 +83,14 @@ class mixture:
         return m, n, neff
 
     # ======================================================================================
+    def compute(self, functions, constants):
+        if isinstance(functions, str):
+            funcs = [genfunc(functions, self.names, constants)]
+        else:
+            funcs = [genfunc(f, self.names, constants) for f in functions]
+        return [multimap(funcs, s.dataset) for s in self.samples]
+
+    # ======================================================================================
     def free_energies(self, reference=0):
         """
         Returns a data frame containing the relative free energies of the datasetd samples
@@ -115,21 +124,25 @@ class mixture:
         """
         info(self.verbose, "Potential:", potential)
 
-        functions = [genfunc(p, self.names, **kwargs) for p in properties.values()]
-        y = [multimap(functions, s.dataset) for s in self.samples]
+        try:
+            y = self.compute(properties.values(), kwargs)
+            properties_needed = False
+        except InputError:
+            properties_needed = True
 
         names = list(properties.keys())
-        try:
-            func, Jac = jacobian(combinations.values(), names, kwargs)
-            jacobian_needed = False
-        except:
-            jacobian_needed = True
+        if (combinations):
+            try:
+                func, Jac = jacobian(combinations.values(), names, kwargs)
+                jacobian_needed = False
+            except InputError:
+                jacobian_needed = True
 
         results = list()
         for constants in cases(potential, conditions, kwargs, self.verbose):
-            potfunc = genfunc(potential, self.names, **constants)
-            u = [multimap([potfunc], s.dataset) for s in self.samples]
-
+            u = self.compute(potential, constants)
+            if properties_needed:
+                y = self.compute(properties.values(), constants)
             yu, Theta = self._reweight(u, y)
             dyu = np.sqrt(np.diagonal(Theta))
 
@@ -143,10 +156,8 @@ class mixture:
             else:
                 results.append(np.stack([yu, dyu]).T.flatten())
 
-        header = sum([[p, 'd'+p] for p in names + list(combinations.keys())], [])
-        frame = pd.DataFrame(results, columns=header)
-
-        return pd.concat([conditions, frame], axis=1)
+        header = sum([[p, 'd_'+p] for p in names + list(combinations.keys())], [])
+        return pd.concat([conditions, pd.DataFrame(results, columns=header)], axis=1)
 
     # ======================================================================================
     def fep(self, potential, conditions=pd.DataFrame(), reference=0, **kwargs):
@@ -162,10 +173,9 @@ class mixture:
         info(self.verbose, "Potential:", potential)
         results = list()
         for constants in cases(potential, conditions, kwargs, self.verbose):
-            potfunc = genfunc(potential, self.names, **constants)
-            u = [multimap([potfunc], s.dataset) for s in self.samples]
+            u = self.compute(potential, constants)
             results.append(self._perturbation(u, reference))
-        frame = pd.DataFrame(results, columns=['f', 'df'])
+        frame = pd.DataFrame(results, columns=['f', 'd_f'])
         return pd.concat([conditions, frame], axis=1)
 
     # ======================================================================================
