@@ -28,7 +28,7 @@ class sample:
             potential (function):
                 the reduced potential that defines the equilibrium sample. This function
                 might for instance receive **x** and return the result of an element-wise
-                calculation involving **x['a']**, **x['b']**, etc, with **'a'**, **'b'**,
+                calculation involving **x["a"]**, **x["b"]**, etc, with **"a"**, **"b"**,
                 etc being names of properties in **dataset**.
             autocorr (function, optional):
                 a function similar to **potential**, but whose result is an autocorrelated
@@ -64,21 +64,19 @@ class pool:
 
     """
 
-    def __init__(self, samples=[], label=""):
-        self.samples = samples
+    # ======================================================================================
+    def __init__(self, label=""):
+        self.samples = list()
         self.label = str(label)
 
-    def add(self, dataset, potential, autocorr=None, batchsize=None, label="", **kwargs):
-        """
-        Add a new sample to the set.
+    # ======================================================================================
+    def add(self, *args, **kwargs):
+        self.samples.append(sample(*args, **kwargs))
 
-        """
-
-        s = sample(dataset, potential, autocorr, batchsize, label, **kwargs)
-        self.samples.append(s)
-
+    # ======================================================================================
     def __getitem__(self, i):
         return self.samples[i]
 
+    # ======================================================================================
     def __len__(self):
         return len(self.samples)

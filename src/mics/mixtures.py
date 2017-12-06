@@ -40,6 +40,8 @@ class mixture:
     # ======================================================================================
     def __define__(self, samples, title, verbose):
 
+        np.set_printoptions(precision=4, threshold=15, edgeitems=4, suppress=True)
+
         self.title = title
         self.method = type(self).__name__
         verbose and info("Setting up %s case:" % self.method, title)
@@ -98,9 +100,9 @@ class mixture:
 
         """
         frame = self.frame.copy()
-        frame['f'] = self.f - self.f[reference]
+        frame["f"] = self.f - self.f[reference]
         T = self.Theta
-        frame['df'] = np.sqrt(np.diag(T) - 2*T[:, reference] + T[reference, reference])
+        frame["df"] = np.sqrt(np.diag(T) - 2*T[:, reference] + T[reference, reference])
         return frame
 
     # ======================================================================================
@@ -123,7 +125,7 @@ class mixture:
             **kwargs:
 
         """
-        verbose and info("Performing reweighting in %s case:" % self.method, self.title)
+        verbose and info("Reweighting requested for %s case" % self.method, self.title)
         verbose and info("Potential:", potential)
 
         try:
@@ -158,7 +160,7 @@ class mixture:
             else:
                 results.append(np.stack([yu, dyu]).T.flatten())
 
-        header = sum([[p, 'd_'+p] for p in names + list(combinations.keys())], [])
+        header = sum([[p, "d_"+p] for p in names + list(combinations.keys())], [])
         return pd.concat([conditions, pd.DataFrame(results, columns=header)], axis=1)
 
     # ======================================================================================
@@ -177,22 +179,23 @@ class mixture:
             **kwargs:
 
         """
-        verbose and info("Performing FEP in %s case:" % self.method, self.title)
+        verbose and info("FEP requested for %s case" % self.method, self.title)
         verbose and info("Potential:", potential)
         results = list()
         for constants in cases(potential, conditions, kwargs, verbose):
             u = self.compute(potential, constants)
             results.append(self.__perturb__(u, reference))
-        frame = pd.DataFrame(results, columns=['f', 'd_f'])
+        frame = pd.DataFrame(results, columns=["f", "d_f"])
         return pd.concat([conditions, frame], axis=1)
 
     # ======================================================================================
-    def histograms(self, bins=100):
-        u0 = self.u0
-        u0min = min([np.amin(x) for x in u0])
-        u0max = max([np.amax(x) for x in u0])
-        center = [u0min + (u0max - u0min)*(i + 0.5)/bins for i in range(bins)]
-        frame = pd.DataFrame({'u0': center})
-        for i in range(self.m):
-            frame[self.states[i]] = np.histogram(u0[i], bins, (u0min, u0max))[0]
+    def histograms(self, property="u0", bins=100, **kwargs):
+        y = self.u0 if property == "u0" else self.compute(property, kwargs)
+        ymin = min([np.amin(x) for x in y])
+        ymax = max([np.amax(x) for x in y])
+        delta = (ymax - ymin)/bins
+        center = [ymin + delta*(i + 0.5) for i in range(bins)]
+        frame = pd.DataFrame({property: center})
+        for (i, s) in enumerate(self.states):
+            frame[s] = np.histogram(y[i], bins, (ymin, ymax))[0]
         return frame

@@ -33,7 +33,7 @@ class MBAR(mixture):
     """
 
     # ======================================================================================
-    def __init__(self, samples, title="Untitled", verbose=False, tol=1.0E-8,
+    def __init__(self, samples, title="Untitled", verbose=False, tol=1.0E-12,
                  subsample=True, compute_acf=True):
 
         m, n, neff = self.__define__(samples, title, verbose)
@@ -49,10 +49,10 @@ class MBAR(mixture):
                     new = timeseries.subsampleCorrelatedData(s.autocorr(s.dataset))
                 else:
                     new = timeseries.subsampleCorrelatedData(old, g=n[i]/neff[i])
-                s.dataset = s.dataset.loc[new]
+                s.dataset = s.dataset.reindex(new)
                 self.u[i] = self.u[i][:, new]
                 n[i] = len(new)
-            verbose and info("Subsampled dataset sizes:", str(n))
+                verbose and info("Size of subsampled dataset %d:" % (i + 1), n[i])
         else:
             verbose and info("Subsampling method:", "none")
 
@@ -81,10 +81,10 @@ class MBAR(mixture):
 
         results = self.MBAR.computeExpectationsInner(A_n, u_ln, map, return_theta=True)
 
-        yu = results['observables']
-        Q = results['Theta']
+        yu = results["observables"]
+        Q = results["Theta"]
         T = Q[0:n, 0:n] + Q[n:2*n, n:2*n] - Q[0:n, n:2*n] - Q[n:2*n, 0:n]
-        delta = yu - results['Amin']
+        delta = yu - results["Amin"]
         Theta = np.multiply(np.outer(delta, delta), T)
         return yu, Theta
 

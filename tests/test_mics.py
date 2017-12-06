@@ -14,7 +14,7 @@ data = ["tests/data/log_%d.dat" % (i + 1) for i in range(m)]
 
 samples = mics.pool()
 for i in range(m):
-    dataset = pd.read_csv(data[i], sep=' ')
+    dataset = pd.read_csv(data[i], sep=" ")
     potential = "beta*E%d" % (i + 1)
     difference = "beta*(E%d - E%d)" % (min(i+2, m), max(i, 1))
     samples.add(dataset, potential, difference, beta=beta)
@@ -30,19 +30,19 @@ mixture = mics.MICS(samples, verbose=True)
 fe = mixture.free_energies()
 print(fe)
 
-np.testing.assert_almost_equal(fe['f'][m], 3.6251084520815593)
-np.testing.assert_almost_equal(fe['df'][m], 0.16158119695537948)
+np.testing.assert_almost_equal(fe["f"][m], 3.6251084520815593)
+np.testing.assert_almost_equal(fe["df"][m], 0.16158119695537948)
 
 parameters = pd.DataFrame({"beta": beta*np.linspace(0.8, 1.2, 5)})
 
-props = mixture.reweighting(potential='beta*E4',
-                            properties={'P': 'Press', 'E': 'PotEng + KinEng'},
+props = mixture.reweighting(potential="beta*E4",
+                            properties={"P": "Press", "E": "PotEng + KinEng"},
                             conditions=parameters,
                             verbose=True)
 
 print(props)
 
-fu = mixture.fep(potential='beta*E4', conditions=parameters, verbose=True)
+fu = mixture.fep(potential="beta*E4", conditions=parameters, verbose=True)
 
 print(fu)
 
@@ -51,15 +51,15 @@ print(fu)
 mbar = mics.MBAR(samples, verbose=True, subsample=True)
 fe = mbar.free_energies()
 print(fe)
-props = mbar.reweighting(potential='beta*E4',
-                         properties={'E': 'PotEng + KinEng', 'E2': '(PotEng + KinEng)**2'},
-                         combinations={'Cv': 'kB*beta**2*(E2 - E**2)'},
+props = mbar.reweighting(potential="beta*E4",
+                         properties={"E": "PotEng + KinEng", "E2": "(PotEng + KinEng)**2"},
+                         combinations={"Cv": "kB*beta**2*(E2 - E**2)"},
                          conditions=parameters,
                          verbose=True,
                          kB=1.987E-3)
 
 print(props)
 
-fu = mbar.fep(potential='beta*E4', conditions=parameters, verbose=True)
+fu = mbar.fep(potential="beta*E4", conditions=parameters, verbose=True)
 
 print(fu)

@@ -34,7 +34,7 @@ class MICS(mixture):
     """
 
     # ======================================================================================
-    def __init__(self, samples, title="Untitled", verbose=False, tol=1.0E-8):
+    def __init__(self, samples, title="Untitled", verbose=False, tol=1.0E-12):
 
         m, n, neff = self.__define__(samples, title, verbose)
 
@@ -46,13 +46,16 @@ class MICS(mixture):
         pm = self.pm = [np.empty(m, np.float64) for k in self.n]
         self.u0 = [np.empty([1, k], np.float64) for k in self.n]
 
+        verbose and info("Solving self-consistent equations...")
         iter = 1
         df = self._newton_raphson_iteration()
+        verbose and info("Maximum deviation at iteration %d:" % iter, max(abs(df)))
         while any(abs(df) > tol):
             iter += 1
             self.f[1:m] += df
             df = self._newton_raphson_iteration()
-        verbose and info("Free energies after %d iterations:" % iter, self.f)
+            verbose and info("Maximum deviation at iteration %d:" % iter, max(abs(df)))
+        verbose and info("Free energies after convergence:", self.f)
 
         self.Sp0 = sum(pi[i]**2*covariance(P[i], pm[i], b[i]) for i in range(m))
         self.Theta = multi_dot([self.iB0, self.Sp0, self.iB0])

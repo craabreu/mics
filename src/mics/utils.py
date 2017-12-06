@@ -30,12 +30,12 @@ def parse_func(function, symbols, constants):
     try:
         func = parse_expr(function, local_dict)
     except (SyntaxError, TokenError):
-        raise SyntaxError("unable to parse function '%s'" % function)
+        raise SyntaxError("unable to parse function \"%s\"" % function)
     except Exception:
-        raise InputError("unknown constants in function '%s'" % function)
+        raise InputError("unknown constants in function \"%s\"" % function)
     if type(func) is not float:
         if [s for s in func.free_symbols if s not in symbols.values()]:
-            raise InputError("unknown symbols in function '%s'" % function)
+            raise InputError("unknown symbols in function \"%s\"" % function)
     return func
 
 
@@ -92,7 +92,7 @@ def multimap(functions, sample):
 
     Note:
         Each function of the array might for instance receive `x` and return the result of
-        an element-wise calculation involving `x['A']`, `x['B']`, etc, with 'A', 'B', etc
+        an element-wise calculation involving `x["A"]`, `x["B"]`, etc, with "A", "B", etc
         being names of properties in DataFrame `sample`.
 
     """
@@ -142,13 +142,11 @@ def overlapSampling(u):
     method of Lee and Scott (1980).
     """
     m = len(u)
-    seq = np.argsort([np.mean(u[i][i, :]) for i in range(m)])
-    i = seq[0]
     f = np.zeros(m)
-    for j in seq[1:m]:
+    for j in range(1, m):
+        i = j - 1
         f[j] = f[i] + logsumexp(0.5*(u[j][j, :] - u[j][i, :])) - \
-                      logsumexp(0.5*(u[i][i, :] - u[i][j, :]))
-        i = j
+            logsumexp(0.5*(u[i][i, :] - u[i][j, :]))
     return f - f[0]
 
 
@@ -161,7 +159,7 @@ def pinv(A):
     """
     D, V = np.linalg.eigh(A)
     inv = np.vectorize(lambda x: 0.0 if np.isclose(x, 0.0) else 1.0/x)
-    return (V*inv(D)).dot(V.T)
+    return np.matmul(V*inv(D), V.T)
 
 
 # ==========================================================================================
