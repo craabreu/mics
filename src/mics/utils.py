@@ -56,7 +56,7 @@ def genfunc(function, variables, constants):
             return lambdify("x", f, ["numpy"])
         else:
             def func(x):
-                return pd.Series(np.full(x.shape[0], func.evalf()))
+                return pd.Series(np.full(x.shape[0], f.evalf()))
             return func
 
     else:
