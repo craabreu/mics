@@ -41,15 +41,9 @@ props = mixture.reweighting(potential="beta*E4",
                             conditions=parameters,
                             verbose=True,
                             kB=1.987E-3)
+print(props)
 
-fu = mixture.fep(potential="beta*E4", conditions=parameters, verbose=True)
-
-print(fu)
-
-fu = mixture.reweighting(potential="beta*E4",
-                         verbose=True,
-                         beta=beta)
-
+fu = mixture.reweighting(potential="beta*E4", conditions=parameters, verbose=True)
 print(fu)
 
 # MBAR
@@ -57,15 +51,14 @@ print(fu)
 mbar = mics.MBAR(samples, verbose=True, subsample=True)
 fe = mbar.free_energies()
 print(fe)
+
 props = mbar.reweighting(potential="beta*E4",
                          properties={"E": "PotEng + KinEng", "E2": "(PotEng + KinEng)**2"},
                          combinations={"Cv": "kB*beta**2*(E2 - E**2)"},
                          conditions=parameters,
                          verbose=True,
                          kB=1.987E-3)
-
 print(props)
 
-fu = mbar.fep(potential="beta*E4", conditions=parameters, verbose=True)
-
+fu = mbar.reweighting(potential="beta*E4", conditions=parameters, verbose=True)
 print(fu)

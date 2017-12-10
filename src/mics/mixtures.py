@@ -185,31 +185,6 @@ class mixture:
             raise InputError("Derivatives will be implemented soon")
 
     # ======================================================================================
-    def fep(self,
-            potential,
-            conditions=pd.DataFrame(),
-            reference=0,
-            verbose=False,
-            **kwargs):
-        """
-        Performs free energy perturbation.
-
-        Args:
-            potential (function/string):
-            conditions (pandas.DataFrame):
-            **kwargs:
-
-        """
-        verbose and info("FEP requested - %s case:" % self.method, self.title)
-        verbose and info("Reduced potential:", potential)
-        results = list()
-        for constants in cases(conditions, kwargs, verbose):
-            u = self.compute(potential, constants)
-            results.append(self.__perturb__(u, reference))
-        frame = pd.DataFrame(results, columns=["f", "d_f"])
-        return pd.concat([conditions, frame], axis=1)
-
-    # ======================================================================================
     def pmf(self,
             potential,
             property,

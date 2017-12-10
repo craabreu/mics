@@ -127,28 +127,3 @@ class MICS(mixture):
         Theta = multi_dot([G.T, Ss0, G])
 
         return np.concatenate([fu, yu]), Theta
-
-    # ======================================================================================
-    def __perturb__(self, u, ref=0):
-        S = range(self.m)
-        pi = self.pi
-        P = self.P
-        pm = self.pm
-        b = self.b
-
-        w = [np.exp(self.u0[i] - u[i]) for i in S]
-        iw0 = 1.0/sum(pi[i]*np.mean(w[i], axis=1) for i in S)[0]
-
-        wm = [np.mean(w[i], axis=1) for i in S]
-        Sp0w0 = sum(pi[i]**2*cross_covariance(P[i], pm[i], w[i], wm[i], b[i]) for i in S)
-        Sw0 = sum(pi[i]**2*covariance(w[i], wm[i], b[i]) for i in S)
-        Ss0 = np.block([[self.Sp0, Sp0w0], [Sp0w0.T, Sw0]])
-
-        pu = sum(pi[i]*np.mean(w[i]*P[i], axis=1) for i in S)*iw0
-        pu[ref] -= 1.0
-        G = np.append(np.matmul(self.iB0, pu[:, np.newaxis]), iw0)
-
-        f = np.log(iw0) - self.f[ref]
-        df = np.sqrt(multi_dot([G.T, Ss0, G]))
-
-        return f, df

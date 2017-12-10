@@ -75,22 +75,29 @@ class MBAR(mixture):
 
     # ======================================================================================
     def __reweight__(self, u, y, ref=0):
-        A_n = np.hstack(y)  # properties
-        n = A_n.shape[0]    # number of properties
         u_ln = np.stack([np.hstack(u).flatten(),                 # new state = 0
                          np.hstack(x[ref, :] for x in self.u)])  # reference state = 1
 
-        # Compute properties [0:n-1] at state 0 and property 0 at state 1:
-        smap = np.block([[np.zeros(n, np.int), 1],  # states
-                         [np.arange(n), 0]])        # properties
-        results = self.MBAR.computeExpectationsInner(A_n, u_ln, smap, return_theta=True)
+        A_n = np.hstack(y)  # properties
+        n = A_n.shape[0]    # number of properties
 
-        # Functions, whose number is n+1:
-        fu = [results['free energies'][0] - results['free energies'][n]]
-        yu = results['observables'][0:n]
+        # Compute properties [0:n-1] at state 0 and property 0 at state 1:
+        smap = np.arange(2) if n == 0 else np.block([[np.zeros(n, np.int), 1],  # states
+                                                     [np.arange(n), 0]])        # properties
+
+        results = self.MBAR.computeExpectationsInner(A_n, u_ln, smap, return_theta=True)
 
         # Covariance matrix of x = log(c), whose size is 2*(n+1) x 2*(n+1):
         Theta = results['Theta']
+
+        if n == 0:
+            fu = results['free energies'][0] - results['free energies'][1]
+            d2fu = Theta[0, 0] + Theta[1, 1] - 2*Theta[0, 1]
+            return np.array([fu]), np.array([[d2fu]])
+
+        # Functions, whose number is n+1:
+        fu = np.array([results['free energies'][0] - results['free energies'][n]])
+        yu = results['observables'][0:n]
 
         # Gradient:
         #     fu = -ln(c[n+1]/c[2*n+1]) = x[2*n+1] - x[n+1]
@@ -104,10 +111,3 @@ class MBAR(mixture):
             G[n+1+i, i+1] = -delta[i]
 
         return np.concatenate([fu, yu]), multi_dot([G.T, Theta, G])
-
-    # ======================================================================================
-    def __perturb__(self, u, ref=0):
-        uself = np.hstack(self.u)
-        u_ln = np.stack([uself[ref, :], np.hstack(u).flatten()])
-        f, df = self.MBAR.computePerturbedFreeEnergies(u_ln, compute_uncertainty=True)
-        return f[0, 1], df[0, 1]
