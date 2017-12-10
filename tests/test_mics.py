@@ -36,9 +36,11 @@ np.testing.assert_almost_equal(fe["df"][m], 0.16158119695537948)
 parameters = pd.DataFrame({"beta": beta*np.linspace(0.8, 1.2, 5)})
 
 props = mixture.reweighting(potential="beta*E4",
-                            properties={"P": "Press", "E": "PotEng + KinEng"},
+                            properties={"E": "PotEng + KinEng", "E2": "(PotEng + KinEng)**2"},
+                            combinations={"Cv": "kB*beta**2*(E2 - E**2)"},
                             conditions=parameters,
-                            verbose=True)
+                            verbose=True,
+                            kB=1.987E-3)
 
 print(props)
 

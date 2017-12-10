@@ -88,7 +88,7 @@ class MICS(mixture):
         return df[1:m] - df[0]
 
     # ======================================================================================
-    def __reweight__(self, u, y):
+    def __reweight__(self, u, y, ref=0):
         S = range(self.m)
         pi = self.pi
         P = self.P
@@ -100,6 +100,7 @@ class MICS(mixture):
 
         iw0 = 1.0/sum(pi[i]*np.mean(w[i], axis=1) for i in S)[0]
         yu = sum(pi[i]*np.mean(z[i], axis=1) for i in S)*iw0
+        fu = np.array([np.log(iw0) - self.f[ref]])
 
         r = [np.concatenate((z[i], w[i])) for i in S]
         rm = [np.mean(r[i], axis=1) for i in S]
@@ -109,13 +110,23 @@ class MICS(mixture):
 
         pu = sum(pi[i]*np.mean(w[i]*P[i], axis=1) for i in S)*iw0
         pytu = sum(pi[i]*np.matmul(P[i], z[i].T)/self.n[i] for i in S)*iw0
-        G = np.concatenate((np.matmul(self.iB0, np.outer(pu, yu) - pytu),
-                            np.diag(np.repeat(iw0, len(yu))),
-                            -yu[np.newaxis, :]*iw0))
+
+        Dyup0 = np.matmul(self.iB0, np.outer(pu, yu) - pytu)
+        Dyuz0 = np.diag(np.repeat(iw0, len(yu)))
+        Dyuw0 = -yu[np.newaxis, :]*iw0
+
+        pu[ref] -= 1.0
+        Dfup0 = np.matmul(self.iB0, pu[:, np.newaxis])
+        Dfuz0 = np.zeros([len(yu), 1])
+        Dfuw0 = iw0
+
+        G = np.block([[Dfup0, Dyup0],
+                      [Dfuz0, Dyuz0],
+                      [Dfuw0, Dyuw0]])
 
         Theta = multi_dot([G.T, Ss0, G])
 
-        return yu, Theta
+        return np.concatenate([fu, yu]), Theta
 
     # ======================================================================================
     def __perturb__(self, u, ref=0):

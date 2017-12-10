@@ -72,7 +72,7 @@ def jacobian(functions, variables, constants):
 
 
 # ==========================================================================================
-def cases(potential, conditions, constants, verbose):
+def cases(conditions, constants, verbose):
     if conditions.empty:
         yield constants
     else:

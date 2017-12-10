@@ -9,6 +9,7 @@
 """
 
 import numpy as np
+from numpy.linalg import multi_dot
 from pymbar import mbar
 from pymbar import timeseries
 
@@ -59,8 +60,8 @@ class MBAR(mixture):
         g = (self.f + np.log(n/sum(n)))[:, np.newaxis]
         self.u0 = [-logsumexp(g - x) for x in self.u]
 
-        self.u = np.hstack(self.u)
-        mb = self.MBAR = mbar.MBAR(self.u, n, relative_tolerance=tol, initial_f_k=self.f)
+        mb = self.MBAR = mbar.MBAR(np.hstack(self.u), n, relative_tolerance=tol,
+                                   initial_f_k=self.f)
 
         self.f = mb.f_k
         verbose and info("Free energies after convergence:", self.f)
@@ -73,23 +74,40 @@ class MBAR(mixture):
         verbose and info("Overlap matrix:", self.Overlap)
 
     # ======================================================================================
-    def __reweight__(self, u, y):
-        A_n = np.hstack(y)
-        u_ln = np.hstack(u).flatten()
-        n = A_n.shape[0]
-        map = np.vstack([np.zeros(n, np.int), np.arange(n)])
+    def __reweight__(self, u, y, ref=0):
+        A_n = np.hstack(y)  # properties
+        n = A_n.shape[0]    # number of properties
+        u_ln = np.stack([np.hstack(u).flatten(),                 # new state = 0
+                         np.hstack(x[ref, :] for x in self.u)])  # reference state = 1
 
-        results = self.MBAR.computeExpectationsInner(A_n, u_ln, map, return_theta=True)
+        # Compute properties [0:n-1] at state 0 and property 0 at state 1:
+        smap = np.block([[np.zeros(n, np.int), 1],  # states
+                         [np.arange(n), 0]])        # properties
+        results = self.MBAR.computeExpectationsInner(A_n, u_ln, smap, return_theta=True)
 
-        yu = results["observables"]
-        Q = results["Theta"]
-        T = Q[0:n, 0:n] + Q[n:2*n, n:2*n] - Q[0:n, n:2*n] - Q[n:2*n, 0:n]
-        delta = yu - results["Amin"]
-        Theta = np.multiply(np.outer(delta, delta), T)
-        return yu, Theta
+        # Functions, whose number is n+1:
+        fu = [results['free energies'][0] - results['free energies'][n]]
+        yu = results['observables'][0:n]
+
+        # Covariance matrix of x = log(c), whose size is 2*(n+1) x 2*(n+1):
+        Theta = results['Theta']
+
+        # Gradient:
+        #     fu = -ln(c[n+1]/c[2*n+1]) = x[2*n+1] - x[n+1]
+        #     yu[i] = c[i]/c[n+1+i] = exp(x[i] - x[n+1+i])
+        G = np.zeros([2*(n+1), n+1])
+        G[n+1, 0] = -1.0
+        G[2*n+1, 0] = 1.0
+        delta = yu - results['Amin'][0:n]
+        for i in range(n):
+            G[i, i+1] = delta[i]
+            G[n+1+i, i+1] = -delta[i]
+
+        return np.concatenate([fu, yu]), multi_dot([G.T, Theta, G])
 
     # ======================================================================================
     def __perturb__(self, u, ref=0):
-        u_ln = np.stack([self.u[ref, :], np.hstack(u).flatten()])
+        uself = np.hstack(self.u)
+        u_ln = np.stack([uself[ref, :], np.hstack(u).flatten()])
         f, df = self.MBAR.computePerturbedFreeEnergies(u_ln, compute_uncertainty=True)
         return f[0, 1], df[0, 1]

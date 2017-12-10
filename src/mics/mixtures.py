@@ -111,8 +111,10 @@ class mixture:
     def reweighting(self,
                     potential,
                     properties,
+                    derivatives={},
                     combinations={},
                     conditions=pd.DataFrame(),
+                    reference=0,
                     verbose=False,
                     **kwargs):
         """
@@ -120,50 +122,58 @@ class mixture:
         the samples determined by the provided `potential` with all `parameter` values.
 
         Args:
-            potential (function/string):
-            properties (dict of functions/strings):
+            potential (string):
+            properties (dict of strings):
             combinations (dict of strings):
-            parameter (pandas.DataFrame):
+            derivatives (dict of tuples):
+            conditions (pandas.DataFrame):
+            verbose (boolean):
             **kwargs:
 
         """
-        verbose and info("Reweighting requested - %s case:" % self.method, self.title)
-        verbose and info("Reduced potential:", potential)
+        if not derivatives:
 
-        try:
-            y = self.compute(properties.values(), kwargs)
-            properties_needed = False
-        except (InputError, KeyError):
-            properties_needed = True
+            verbose and info("Reweighting requested - %s case:" % self.method, self.title)
+            verbose and info("Reduced potential:", potential)
 
-        names = list(properties.keys())
-        if (combinations):
             try:
-                func, Jac = jacobian(combinations.values(), names, kwargs)
-                jacobian_needed = False
-            except InputError:
-                jacobian_needed = True
+                y = self.compute(properties.values(), kwargs)
+                properties_needed = False
+            except (InputError, KeyError):
+                properties_needed = True
 
-        results = list()
-        for constants in cases(potential, conditions, kwargs, verbose):
-            u = self.compute(potential, constants)
-            if properties_needed:
-                y = self.compute(properties.values(), constants)
-            yu, Theta = self.__reweight__(u, y)
-            dyu = np.sqrt(np.diagonal(Theta))
-
+            names = ['f'] + list(properties.keys())
             if (combinations):
-                if jacobian_needed:
-                    func, Jac = jacobian(combinations.values(), names, constants)
-                g = func(yu).flatten()
-                J = Jac(yu)
-                dg = np.sqrt(np.diagonal(multi_dot([J, Theta, J.T])))
-                results.append(np.block([[yu, g], [dyu, dg]]).T.flatten())
-            else:
-                results.append(np.stack([yu, dyu]).T.flatten())
+                try:
+                    func, Jac = jacobian(combinations.values(), names, kwargs)
+                    jacobian_needed = False
+                except InputError:
+                    jacobian_needed = True
 
-        header = sum([[p, "d_"+p] for p in names + list(combinations.keys())], [])
-        return pd.concat([conditions, pd.DataFrame(results, columns=header)], axis=1)
+            results = list()
+            for constants in cases(conditions, kwargs, verbose):
+                u = self.compute(potential, constants)
+                if properties_needed:
+                    y = self.compute(properties.values(), constants)
+                fuyu, Theta = self.__reweight__(u, y, reference)
+                dfuyu = np.sqrt(np.diagonal(Theta))
+
+                if (combinations):
+                    if jacobian_needed:
+                        func, Jac = jacobian(combinations.values(), names, constants)
+                    g = func(fuyu).flatten()
+                    J = Jac(fuyu)
+                    dg = np.sqrt(np.diagonal(multi_dot([J, Theta, J.T])))
+                    results.append(np.block([[fuyu, g], [dfuyu, dg]]).T.flatten())
+                else:
+                    results.append(np.stack([fuyu, dfuyu]).T.flatten())
+
+            header = sum([[p, "d"+p] for p in names + list(combinations.keys())], [])
+            return pd.concat([conditions, pd.DataFrame(results, columns=header)], axis=1)
+
+        else:
+            # Add new properties and combinations, then call self.reweighting again
+            raise InputError("Derivatives will be implemented soon")
 
     # ======================================================================================
     def fep(self,
@@ -184,7 +194,7 @@ class mixture:
         verbose and info("FEP requested - %s case:" % self.method, self.title)
         verbose and info("Reduced potential:", potential)
         results = list()
-        for constants in cases(potential, conditions, kwargs, verbose):
+        for constants in cases(conditions, kwargs, verbose):
             u = self.compute(potential, constants)
             results.append(self.__perturb__(u, reference))
         frame = pd.DataFrame(results, columns=["f", "d_f"])
