@@ -110,7 +110,7 @@ class mixture:
     # ======================================================================================
     def reweighting(self,
                     potential,
-                    properties,
+                    properties={},
                     derivatives={},
                     combinations={},
                     conditions=pd.DataFrame(),
@@ -131,10 +131,17 @@ class mixture:
             **kwargs:
 
         """
-        if not derivatives:
+        names = ['f'] + list(properties.keys())
 
-            verbose and info("Reweighting requested - %s case:" % self.method, self.title)
-            verbose and info("Reduced potential:", potential)
+        if verbose:
+            info("Reweighting requested in %s case:" % self.method, self.title)
+            info("Reduced potential:", potential)
+            info("Requested averages:", properties if properties else None)
+            info("Requested derivatives:", derivatives if derivatives else None)
+            info("Requested combinations:", combinations if combinations else None)
+            info("Provided constants: ", kwargs if kwargs else None)
+
+        if not derivatives:
 
             try:
                 y = self.compute(properties.values(), kwargs)
@@ -142,7 +149,6 @@ class mixture:
             except (InputError, KeyError):
                 properties_needed = True
 
-            names = ['f'] + list(properties.keys())
             if (combinations):
                 try:
                     func, Jac = jacobian(combinations.values(), names, kwargs)
@@ -155,21 +161,24 @@ class mixture:
                 u = self.compute(potential, constants)
                 if properties_needed:
                     y = self.compute(properties.values(), constants)
-                fuyu, Theta = self.__reweight__(u, y, reference)
-                dfuyu = np.sqrt(np.diagonal(Theta))
+                g, Theta = self.__reweight__(u, y, reference)
+                dg = np.sqrt(np.diagonal(Theta))
 
                 if (combinations):
                     if jacobian_needed:
                         func, Jac = jacobian(combinations.values(), names, constants)
-                    g = func(fuyu).flatten()
-                    J = Jac(fuyu)
-                    dg = np.sqrt(np.diagonal(multi_dot([J, Theta, J.T])))
-                    results.append(np.block([[fuyu, g], [dfuyu, dg]]).T.flatten())
+                    h = func(g).flatten()
+                    J = Jac(g)
+                    dh = np.sqrt(np.diagonal(multi_dot([J, Theta, J.T])))
+                    results.append(np.block([[g, h], [dg, dh]]).T.flatten())
                 else:
-                    results.append(np.stack([fuyu, dfuyu]).T.flatten())
+                    results.append(np.stack([g, dg]).T.flatten())
 
-            header = sum([[p, "d"+p] for p in names + list(combinations.keys())], [])
-            return pd.concat([conditions, pd.DataFrame(results, columns=header)], axis=1)
+            header = sum([[x, "d"+x] for x in names + list(combinations.keys())], [])
+            if conditions.empty:
+                return dict(zip(header, results[0]))
+            else:
+                return pd.concat([conditions, pd.DataFrame(results, columns=header)], 1)
 
         else:
             # Add new properties and combinations, then call self.reweighting again

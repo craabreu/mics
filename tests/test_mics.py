@@ -42,9 +42,13 @@ props = mixture.reweighting(potential="beta*E4",
                             verbose=True,
                             kB=1.987E-3)
 
-print(props)
-
 fu = mixture.fep(potential="beta*E4", conditions=parameters, verbose=True)
+
+print(fu)
+
+fu = mixture.reweighting(potential="beta*E4",
+                         verbose=True,
+                         beta=beta)
 
 print(fu)
 
