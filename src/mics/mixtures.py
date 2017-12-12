@@ -17,6 +17,7 @@ from numpy.linalg import multi_dot
 from mics.samples import pool
 from mics.utils import InputError
 from mics.utils import cases
+from mics.utils import derivative
 from mics.utils import genfunc
 from mics.utils import info
 from mics.utils import jacobian
@@ -131,15 +132,16 @@ class mixture:
             **kwargs:
 
         """
+        # TODO: look for duplicated names or reserved keyword 'f' in properties
+        # TODO: look for duplicated names in properties, derivatives, and combinations
+        # TODO: allow limited recursion in combinations
+
         names = ['f'] + list(properties.keys())
 
         if verbose:
             info("Reweighting requested in %s case:" % self.method, self.title)
             info("Reduced potential:", potential)
-            info("Requested averages:", properties if properties else None)
-            info("Requested derivatives:", derivatives if derivatives else None)
-            info("Requested combinations:", combinations if combinations else None)
-            info("Provided constants: ", kwargs if kwargs else None)
+            kwargs and info("Provided constants: ", kwargs)
 
         if not derivatives:
 
@@ -181,8 +183,31 @@ class mixture:
                 return pd.concat([conditions, pd.DataFrame(results, columns=header)], 1)
 
         else:
-            # Add new properties and combinations, then call self.reweighting again
-            raise InputError("Derivatives will be implemented soon")
+
+            def dec(x):
+                return "__%s__" % x
+
+            parameters = list(conditions.columns) + list(kwargs.keys())
+            zyx = [(key, value[0], value[1]) for key, value in derivatives.items()]
+
+            props = {}
+            combs = {}
+            for x in set(x for z, y, x in zyx):
+                props[dec(x)] = derivative(potential, x, parameters)
+
+            for z, y, x in zyx:
+                if y == 'f':
+                    combs[z] = dec(x)
+                else:
+                    dydx = derivative(properties[y], x, parameters)
+                    props[dec(z)] = "%s - (%s)*(%s)" % (dydx, props[dec(x)], properties[y])
+                    combs[z] = "%s + (%s)*(%s)" % (dec(z), dec(x), y)
+
+            unwanted = sum([[x, "d"+x] for x in props.keys()], [])
+
+            return self.reweighting(potential, dict(properties, **props), {},
+                                    dict(combs, **combinations), conditions, reference,
+                                    verbose, **kwargs).drop(unwanted, axis=1)
 
     # ======================================================================================
     def pmf(self,
