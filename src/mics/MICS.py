@@ -34,9 +34,10 @@ class MICS(mixture):
     """
 
     # ======================================================================================
-    def __init__(self, samples, title="Untitled", verbose=False, tol=1.0E-12):
+    def __init__(self, samples, title="Untitled", verbose=False, tol=1.0E-12,
+                 subsample=False):
 
-        m, n, neff = self.__define__(samples, title, verbose)
+        m, n, neff = self.__define__(samples, title, verbose, subsample)
 
         b = self.b = [s.b for s in samples]
         pi = self.pi = neff/sum(neff)

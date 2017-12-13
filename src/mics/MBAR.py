@@ -11,7 +11,6 @@
 import numpy as np
 from numpy.linalg import multi_dot
 from pymbar import mbar
-from pymbar import timeseries
 
 from mics.mixtures import mixture
 from mics.utils import info
@@ -35,30 +34,12 @@ class MBAR(mixture):
 
     # ======================================================================================
     def __init__(self, samples, title="Untitled", verbose=False, tol=1.0E-12,
-                 subsample=True, compute_acf=True):
+                 subsample=True):
 
-        m, n, neff = self.__define__(samples, title, verbose)
+        m, n, neff = self.__define__(samples, title, verbose, subsample)
 
-        if subsample:
-            if compute_acf:
-                verbose and info("Subsampling method:", "integrated ACF")
-            else:
-                verbose and info("Subsampling method:", "overlapping batch means")
-            for (i, s) in enumerate(self.samples):
-                old = s.dataset.index
-                if compute_acf:
-                    new = timeseries.subsampleCorrelatedData(s.autocorr(s.dataset))
-                else:
-                    new = timeseries.subsampleCorrelatedData(old, g=n[i]/neff[i])
-                s.dataset = s.dataset.reindex(new)
-                self.u[i] = self.u[i][:, new]
-                n[i] = len(new)
-                verbose and info("Size of subsampled dataset %d:" % (i + 1), n[i])
-        else:
-            verbose and info("Subsampling method:", "none")
-
-        g = (self.f + np.log(n/sum(n)))[:, np.newaxis]
-        self.u0 = [-logsumexp(g - x) for x in self.u]
+        flnpi = (self.f + np.log(n/sum(n)))[:, np.newaxis]
+        self.u0 = [-logsumexp(flnpi - u) for u in self.u]
 
         mb = self.MBAR = mbar.MBAR(np.hstack(self.u), n, relative_tolerance=tol,
                                    initial_f_k=self.f)

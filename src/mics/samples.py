@@ -9,9 +9,11 @@
 """
 
 import numpy as np
+from pymbar.timeseries import statisticalInefficiency
 
 from mics.utils import covariance
 from mics.utils import genfunc
+from mics.utils import info
 from mics.utils import multimap
 
 
@@ -41,13 +43,27 @@ class sample:
 
     """
 
-    def __init__(self, dataset, potential, autocorr=None, batchsize=None, label="", **kwargs):
+    def __init__(self, dataset, potential, autocorr=None, label=None,
+                 batchsize=None, compute_inefficiency=False, verbose=False, **kwargs):
+
+        if verbose:
+            info("Setting up sample with label:", label)
+            info("Reduced potential:", potential)
+            info("Autocorrelated property:", (autocorr if autocorr else potential))
+            info("Constants:", kwargs)
+
         names = list(dataset.columns)
         self.dataset = dataset
         self.potential = genfunc(potential, names, kwargs)
         self.label = str(label)
         n = self.n = dataset.shape[0]
         b = self.b = batchsize if batchsize else int(np.sqrt(n))
+
+        if verbose:
+            info("Properties:", ", ".join(names))
+            info("Sample size:", n)
+            info("Batch size:", b)
+
         self.autocorr = genfunc(autocorr, names, kwargs) if autocorr else self.potential
         y = multimap([self.autocorr], dataset)
         ym = np.mean(y, axis=1)
@@ -57,6 +73,19 @@ class sample:
             raise FloatingPointError("unable to determine effective sample size")
         self.neff = n*S1/Sb
 
+        if verbose:
+            info("Variance disregarding autocorrelation:", S1)
+            info("Variance via Overlapping Batch Means:", Sb)
+            info("Effective sample size via OBM:", self.neff)
+
+        if compute_inefficiency:
+            self.g = statisticalInefficiency(y[0])
+            if verbose:
+                info("Statistical inefficency via integrated ACF:", self.g)
+                info("Effective sample size via integrated ACF:", n/self.g)
+        else:
+            self.g = None
+
 
 class pool:
     """
@@ -65,13 +94,14 @@ class pool:
     """
 
     # ======================================================================================
-    def __init__(self, label=""):
+    def __init__(self, label="", verbose=False):
         self.samples = list()
         self.label = str(label)
+        self.verbose = verbose
 
     # ======================================================================================
     def add(self, *args, **kwargs):
-        self.samples.append(sample(*args, **kwargs))
+        self.samples.append(sample(*args, verbose=self.verbose, **kwargs))
 
     # ======================================================================================
     def __getitem__(self, i):

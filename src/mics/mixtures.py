@@ -13,6 +13,7 @@ from copy import deepcopy
 import numpy as np
 import pandas as pd
 from numpy.linalg import multi_dot
+from pymbar import timeseries
 
 from mics.samples import pool
 from mics.utils import InputError
@@ -41,11 +42,12 @@ class mixture:
     """
 
     # ======================================================================================
-    def __define__(self, samples, title, verbose):
+    def __define__(self, samples, title, verbose, subsample):
 
         np.set_printoptions(precision=4, threshold=15, edgeitems=4, suppress=True)
 
         self.title = title
+        self.verbose = verbose
         self.method = type(self).__name__
         verbose and info("Setting up %s case:" % self.method, title)
 
@@ -69,14 +71,24 @@ class mixture:
         n = self.n = np.array([s.dataset.shape[0] for s in samples])
         verbose and info("Sample sizes:", str(self.n))
 
-        neff = self.neff = np.array([s.neff for s in samples])
-        verbose and info("Effective sample sizes:", neff)
-
         potentials = [s.potential for s in samples]
         self.u = [multimap(potentials, s.dataset) for s in samples]
 
         self.f = overlapSampling(self.u)
         verbose and info("Initial free-energy guess:", self.f)
+
+        neff = self.neff = np.array([s.neff for s in samples])
+        if subsample:
+            for (i, sample) in enumerate(self.samples):
+                old = sample.dataset.index
+                g = sample.g if sample.g else n[i]/neff[i]
+                new = timeseries.subsampleCorrelatedData(old, g)
+                sample.dataset = sample.dataset.reindex(new)
+                self.u[i] = self.u[i][:, new]
+                neff[i] = n[i] = len(new)
+            verbose and info("Sample sizes after subsampling:", str(n))
+        else:
+            verbose and info("Effective sample sizes:", neff)
 
         self.frame = pd.DataFrame(index=np.arange(m) + 1)
         if self.label:
@@ -116,7 +128,6 @@ class mixture:
                     combinations={},
                     conditions=pd.DataFrame(),
                     reference=0,
-                    verbose=False,
                     **kwargs):
         """
         Performs reweighting of the properties computed by `functions` from the mixture to
@@ -138,7 +149,7 @@ class mixture:
 
         names = ['f'] + list(properties.keys())
 
-        if verbose:
+        if self.verbose:
             info("Reweighting requested in %s case:" % self.method, self.title)
             info("Reduced potential:", potential)
             kwargs and info("Provided constants: ", kwargs)
@@ -159,7 +170,7 @@ class mixture:
                     jacobian_needed = True
 
             results = list()
-            for constants in cases(conditions, kwargs, verbose):
+            for constants in cases(conditions, kwargs, self.verbose):
                 u = self.compute(potential, constants)
                 if properties_needed:
                     y = self.compute(properties.values(), constants)
@@ -207,7 +218,7 @@ class mixture:
 
             return self.reweighting(potential, dict(properties, **props), {},
                                     dict(combs, **combinations), conditions, reference,
-                                    verbose, **kwargs).drop(unwanted, axis=1)
+                                    **kwargs).drop(unwanted, axis=1)
 
     # ======================================================================================
     def pmf(self,
@@ -215,11 +226,10 @@ class mixture:
             property,
             bins=10,
             interval=None,
-            verbose=False,
             **kwargs):
 
-        verbose and info("PMF requested - %s case:" % self.method, self.title)
-        verbose and info("Reduced potential:", potential)
+        self.verbose and info("PMF requested - %s case:" % self.method, self.title)
+        self.verbose and info("Reduced potential:", potential)
         u = self.compute(potential, kwargs)
 
         z = self.compute(property, kwargs)
@@ -234,7 +244,7 @@ class mixture:
         results = list()
         for i in range(bins):
             zc = zmin + delta*(i + 0.5)
-            verbose and info("Bin[%d]:" % (i + 1), "%s = %s" % (property, str(zc)))
+            self.verbose and info("Bin[%d]:" % (i + 1), "%s = %s" % (property, str(zc)))
             y = [np.equal(x, i).astype(np.float) for x in ibin]
             yu, Theta = self.__reweight__(u, y)
             dyu = np.sqrt(Theta)
