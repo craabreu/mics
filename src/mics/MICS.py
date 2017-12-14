@@ -35,17 +35,13 @@ class MICS(mixture):
 
     # ======================================================================================
     def __init__(self, samples, title="Untitled", verbose=False, tol=1.0E-12,
-                 subsample=False):
+                 subsample=False, copy=False):
 
-        m, n, neff = self.__define__(samples, title, verbose, subsample)
+        m, n, neff = self.__define__(samples, title, verbose, subsample, copy)
 
         b = self.b = [s.b for s in samples]
         pi = self.pi = neff/sum(neff)
         verbose and info("Mixture composition:", pi)
-
-        P = self.P = [np.empty([m, k], np.float64) for k in self.n]
-        pm = self.pm = [np.empty(m, np.float64) for k in self.n]
-        self.u0 = [np.empty([1, k], np.float64) for k in self.n]
 
         verbose and info("Solving self-consistent equations...")
         iter = 1
@@ -58,32 +54,37 @@ class MICS(mixture):
             verbose and info("Maximum deviation at iteration %d:" % iter, max(abs(df)))
         verbose and info("Free energies after convergence:", self.f)
 
-        self.Sp0 = sum(pi[i]**2*covariance(P[i], pm[i], b[i]) for i in range(m))
+        self.Sp0 = sum(pi[i]**2*covariance(self.P[i], self.pm[i], b[i]) for i in range(m))
         self.Theta = multi_dot([self.iB0, self.Sp0, self.iB0])
         verbose and info("Free-energy covariance matrix:", self.Theta)
 
-        self.Overlap = np.stack(pm)
+        self.Overlap = np.stack(self.pm)
         verbose and info("Overlap matrix:", self.Overlap)
 
     # ======================================================================================
     def _newton_raphson_iteration(self):
         m = self.m
-        u = self.u
-        P = self.P
         pi = self.pi
-        g = (self.f + np.log(pi))[:, np.newaxis]
+        n = self.n
         S = range(m)
-        for i in S:
-            x = g - u[i]
-            xmax = np.amax(x, axis=0)
-            numer = np.exp(x - xmax)
-            denom = np.sum(numer, axis=0)
-            self.P[i] = numer / denom
-            self.u0[i] = -(xmax + np.log(denom))
-            self.pm[i] = np.mean(P[i], axis=1)
 
+        x = np.hstack(self.u)
+        np.subtract((self.f + np.log(pi))[:, np.newaxis], x, out=x)
+        xmax = np.amax(x, axis=0)
+        np.subtract(x, xmax, out=x)
+        np.exp(x, out=x)
+        y = np.sum(x, axis=0)
+        np.divide(x, y, out=x)
+        np.log(y, out=y)
+        np.add(xmax, y, out=y)
+        np.negative(y, out=y)
+
+        markers = np.cumsum(n[0:m-1])
+        P = self.P = np.split(x, markers, axis=1)
+        self.u0 = np.split(y, markers)
+        self.pm = [np.mean(p, axis=1) for p in self.P]
         p0 = self.p0 = sum(pi[i]*self.pm[i] for i in S)
-        B0 = np.diag(p0) - sum(pi[i]*np.matmul(P[i], P[i].T)/self.n[i] for i in S)
+        B0 = np.diag(p0) - sum(pi[i]/n[i]*np.matmul(P[i], P[i].T) for i in S)
         self.iB0 = pinv(B0)
         df = np.matmul(self.iB0, pi - p0)
         return df[1:m] - df[0]

@@ -42,7 +42,7 @@ class mixture:
     """
 
     # ======================================================================================
-    def __define__(self, samples, title, verbose, subsample):
+    def __define__(self, samples, title, verbose, subsample, copy):
 
         np.set_printoptions(precision=4, threshold=15, edgeitems=4, suppress=True)
 
@@ -57,10 +57,10 @@ class mixture:
         verbose and info("Number of samples:", m)
 
         if type(samples) is pool:
-            self.samples = deepcopy(samples.samples)
+            self.samples = deepcopy(samples.samples) if copy else samples.samples
             self.label = samples.label
         else:
-            self.samples = deepcopy(samples)
+            self.samples = deepcopy(samples) if copy else samples
             self.label = ""
 
         names = self.names = list(samples[0].dataset.columns)

@@ -34,9 +34,9 @@ class MBAR(mixture):
 
     # ======================================================================================
     def __init__(self, samples, title="Untitled", verbose=False, tol=1.0E-12,
-                 subsample=True):
+                 subsample=True, copy=False):
 
-        m, n, neff = self.__define__(samples, title, verbose, subsample)
+        m, n, neff = self.__define__(samples, title, verbose, subsample, copy)
 
         flnpi = (self.f + np.log(n/sum(n)))[:, np.newaxis]
         self.u0 = [-logsumexp(flnpi - u) for u in self.u]
