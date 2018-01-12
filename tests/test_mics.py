@@ -17,7 +17,7 @@ for i in range(m):
     dataset = pd.read_csv(data[i], sep=" ")
     potential = "beta*E%d" % (i + 1)
     difference = "beta*(E%d - E%d)" % (min(i+2, m), max(i, 1))
-    samples.add(dataset, potential, difference, compute_inefficiency=True, beta=beta)
+    samples.add(dataset, potential, difference, beta=beta)
 
 neff = [100.829779921697, 76.82824014457174, 69.63811023389404, 55.179192164637165]
 for i in range(4):
@@ -52,7 +52,7 @@ print(fu)
 
 # MBAR
 
-mbar = mics.MBAR(samples, verbose=True, subsample=True)
+mbar = mics.MBAR(samples.copy().subsample(), verbose=True)
 fe = mbar.free_energies()
 print(fe)
 

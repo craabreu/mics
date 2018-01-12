@@ -8,8 +8,13 @@
 
 """
 
+# TODO: save potential and autocor as strings rather than lambda functions, so that
+#       one can use pickle to save a sample or a mixture object.
+
+from copy import deepcopy
+
 import numpy as np
-from pymbar.timeseries import statisticalInefficiency
+from pymbar import timeseries
 
 from mics.utils import covariance
 from mics.utils import genfunc
@@ -44,7 +49,7 @@ class sample:
     """
 
     def __init__(self, dataset, potential, autocorr=None, label=None,
-                 batchsize=None, compute_inefficiency=False, verbose=False, **kwargs):
+                 batchsize=None, verbose=False, **kwargs):
 
         if verbose:
             info("Setting up sample with label:", label)
@@ -53,6 +58,8 @@ class sample:
             info("Constants:", kwargs)
 
         names = list(dataset.columns)
+        verbose and info("Properties:", ", ".join(names))
+
         self.dataset = dataset
         self.potential = genfunc(potential, names, kwargs)
         self.label = str(label)
@@ -60,7 +67,6 @@ class sample:
         b = self.b = batchsize if batchsize else int(np.sqrt(n))
 
         if verbose:
-            info("Properties:", ", ".join(names))
             info("Sample size:", n)
             info("Batch size:", b)
 
@@ -78,18 +84,10 @@ class sample:
             info("Variance via Overlapping Batch Means:", Sb)
             info("Effective sample size via OBM:", self.neff)
 
-        if compute_inefficiency:
-            self.g = statisticalInefficiency(y[0])
-            if verbose:
-                info("Statistical inefficency via integrated ACF:", self.g)
-                info("Effective sample size via integrated ACF:", n/self.g)
-        else:
-            self.g = None
-
 
 class pool:
     """
-    A set of independently collected samples.
+    A pool of independently collected samples.
 
     """
 
@@ -102,6 +100,27 @@ class pool:
     # ======================================================================================
     def add(self, *args, **kwargs):
         self.samples.append(sample(*args, verbose=self.verbose, **kwargs))
+
+    # ======================================================================================
+    def copy(self):
+        return deepcopy(self)
+
+    # ======================================================================================
+    def subsample(self, compute_inefficiency=True):
+        for (i, sample) in enumerate(self.samples):
+            old = sample.dataset.index
+            if compute_inefficiency:
+                y = multimap([sample.autocorr], sample.dataset)
+                g = timeseries.statisticalInefficiency(y[0])
+                info("Statistical inefficency via integrated ACF:", g)
+            else:
+                g = sample.n/sample.neff
+                info("Statistical inefficency via Overlapping Batch Means:", g)
+            new = timeseries.subsampleCorrelatedData(old, g)
+            sample.dataset = sample.dataset.reindex(new)
+            sample.neff = sample.n = len(new)
+        self.verbose and info("New sample sizes:", [s.n for s in self.samples])
+        return self
 
     # ======================================================================================
     def __getitem__(self, i):

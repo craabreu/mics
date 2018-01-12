@@ -34,10 +34,9 @@ class MICS(mixture):
     """
 
     # ======================================================================================
-    def __init__(self, samples, title="Untitled", verbose=False, tol=1.0E-12,
-                 subsample=False, copy=False):
+    def __init__(self, samples, title="Untitled", verbose=False, tol=1.0E-12):
 
-        m, n, neff = self.__define__(samples, title, verbose, subsample, copy)
+        m, n, neff = self.__define__(samples, title, verbose)
 
         b = self.b = [s.b for s in samples]
         pi = self.pi = neff/sum(neff)
@@ -84,8 +83,8 @@ class MICS(mixture):
         self.u0 = np.split(y, markers)
         self.pm = [np.mean(p, axis=1) for p in self.P]
         p0 = self.p0 = sum(pi[i]*self.pm[i] for i in S)
-        B0 = np.diag(p0) - sum(pi[i]/n[i]*np.matmul(P[i], P[i].T) for i in S)
-        self.iB0 = pinv(B0)
+        self.B0 = np.diag(p0) - sum(pi[i]/n[i]*np.matmul(P[i], P[i].T) for i in S)
+        self.iB0 = pinv(self.B0)
         df = np.matmul(self.iB0, pi - p0)
         return df[1:m] - df[0]
 

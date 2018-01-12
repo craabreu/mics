@@ -8,12 +8,9 @@
 
 """
 
-from copy import deepcopy
-
 import numpy as np
 import pandas as pd
 from numpy.linalg import multi_dot
-from pymbar import timeseries
 
 from mics.samples import pool
 from mics.utils import InputError
@@ -42,7 +39,7 @@ class mixture:
     """
 
     # ======================================================================================
-    def __define__(self, samples, title, verbose, subsample, copy):
+    def __define__(self, samples, title, verbose):
 
         np.set_printoptions(precision=4, threshold=15, edgeitems=4, suppress=True)
 
@@ -57,10 +54,10 @@ class mixture:
         verbose and info("Number of samples:", m)
 
         if type(samples) is pool:
-            self.samples = deepcopy(samples.samples) if copy else samples.samples
+            self.samples = samples.samples
             self.label = samples.label
         else:
-            self.samples = deepcopy(samples) if copy else samples
+            self.samples = samples
             self.label = ""
 
         names = self.names = list(samples[0].dataset.columns)
@@ -78,17 +75,6 @@ class mixture:
         verbose and info("Initial free-energy guess:", self.f)
 
         neff = self.neff = np.array([s.neff for s in samples])
-        if subsample:
-            for (i, sample) in enumerate(self.samples):
-                old = sample.dataset.index
-                g = sample.g if sample.g else n[i]/neff[i]
-                new = timeseries.subsampleCorrelatedData(old, g)
-                sample.dataset = sample.dataset.reindex(new)
-                self.u[i] = self.u[i][:, new]
-                neff[i] = n[i] = len(new)
-            verbose and info("Sample sizes after subsampling:", str(n))
-        else:
-            verbose and info("Effective sample sizes:", neff)
 
         self.frame = pd.DataFrame(index=np.arange(m) + 1)
         if self.label:
@@ -247,14 +233,23 @@ class mixture:
             self.verbose and info("Bin[%d]:" % (i + 1), "%s = %s" % (property, str(zc)))
             y = [np.equal(x, i).astype(np.float) for x in ibin]
             yu, Theta = self.__reweight__(u, y)
-            dyu = np.sqrt(Theta)
-            results.append([zc, -np.log(yu[0]), dyu[0, 0]/yu[0]])
+            if yu[1] > 0.0:
+                dyu = np.sqrt(Theta[1, 1])
+                print([zc, -np.log(yu[1]), dyu/yu[1]])
+                results.append([zc, -np.log(yu[1]), dyu/yu[1]])
 
         return pd.DataFrame(results, columns=[property, "pmf", "d_pmf"])
 
     # ======================================================================================
     def histograms(self, property="u0", bins=100, **kwargs):
-        y = self.u0 if property == "u0" else self.compute(property, kwargs)
+        if property == "u0":
+            y = self.u0
+        elif property == "state":
+            w = np.arange(self.m) + 1
+            wsum = sum(w)
+            y = [wsum*np.average(p, axis=0, weights=w) for p in self.P]
+        else:
+            y = self.compute(property, kwargs)
         ymin = min([np.amin(x) for x in y])
         ymax = max([np.amax(x) for x in y])
         delta = (ymax - ymin)/bins

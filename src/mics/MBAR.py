@@ -33,19 +33,19 @@ class MBAR(mixture):
     """
 
     # ======================================================================================
-    def __init__(self, samples, title="Untitled", verbose=False, tol=1.0E-12,
-                 subsample=True, copy=False):
+    def __init__(self, samples, title="Untitled", verbose=False, tol=1.0E-12):
 
-        m, n, neff = self.__define__(samples, title, verbose, subsample, copy)
-
-        flnpi = (self.f + np.log(n/sum(n)))[:, np.newaxis]
-        self.u0 = [-logsumexp(flnpi - u) for u in self.u]
+        m, n, neff = self.__define__(samples, title, verbose)
 
         mb = self.MBAR = mbar.MBAR(np.hstack(self.u), n, relative_tolerance=tol,
                                    initial_f_k=self.f)
 
         self.f = mb.f_k
         verbose and info("Free energies after convergence:", self.f)
+
+        flnpi = (self.f + np.log(n/sum(n)))[:, np.newaxis]
+        self.u0 = [-logsumexp(flnpi - u) for u in self.u]
+        self.P = [np.exp(flnpi - self.u[i] + self.u0[i]) for i in range(m)]
 
         Theta = mb._computeAsymptoticCovarianceMatrix(np.exp(mb.Log_W_nk), mb.N_k)
         self.Theta = np.array(Theta)
