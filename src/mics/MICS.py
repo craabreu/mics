@@ -34,12 +34,14 @@ class MICS(mixture):
     """
 
     # ======================================================================================
-    def __init__(self, samples, title="Untitled", verbose=False, tol=1.0E-12):
+    def __init__(self, samples, title="Untitled", verbose=False, tol=1.0E-12,
+                 composition=[]):
 
         m, n, neff = self.__define__(samples, title, verbose)
 
         b = self.b = [s.b for s in samples]
-        pi = self.pi = neff/sum(neff)
+        x = neff if not composition else np.array(composition)
+        pi = self.pi = x/np.sum(x)
         verbose and info("Mixture composition:", pi)
 
         verbose and info("Solving self-consistent equations...")
