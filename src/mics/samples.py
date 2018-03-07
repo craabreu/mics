@@ -107,19 +107,21 @@ class pool:
 
     # ======================================================================================
     def subsample(self, compute_inefficiency=True):
+        self.verbose and info("Performing subsampling...")
         for (i, sample) in enumerate(self.samples):
+            self.verbose and info("Original sample size:", sample.n)
             old = sample.dataset.index
             if compute_inefficiency:
                 y = multimap([sample.autocorr], sample.dataset)
                 g = timeseries.statisticalInefficiency(y[0])
-                info("Statistical inefficency via integrated ACF:", g)
+                self.verbose and info("Statistical inefficency via integrated ACF:", g)
             else:
                 g = sample.n/sample.neff
-                info("Statistical inefficency via Overlapping Batch Means:", g)
+                self.verbose and info("Statistical inefficency via Overlapping Batch Means:", g)
             new = timeseries.subsampleCorrelatedData(old, g)
             sample.dataset = sample.dataset.reindex(new)
             sample.neff = sample.n = len(new)
-        self.verbose and info("New sample sizes:", [s.n for s in self.samples])
+            self.verbose and info("New sample size:", sample.n)
         return self
 
     # ======================================================================================

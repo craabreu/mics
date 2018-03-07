@@ -174,10 +174,11 @@ class mixture:
                     results.append(np.stack([g, dg]).T.flatten())
 
             header = sum([[x, "d"+x] for x in names + list(combinations.keys())], [])
-            if conditions.empty:
-                return dict(zip(header, results[0]))
-            else:
-                return pd.concat([conditions, pd.DataFrame(results, columns=header)], 1)
+#             if conditions.empty:
+#                 return dict(zip(header, results[0]))
+#             else:
+#                 return pd.concat([conditions, pd.DataFrame(results, columns=header)], 1)
+            return pd.concat([conditions, pd.DataFrame(results, columns=header)], 1)
 
         else:
 
@@ -248,6 +249,8 @@ class mixture:
             w = np.arange(self.m) + 1
             wsum = sum(w)
             y = [wsum*np.average(p, axis=0, weights=w) for p in self.P]
+        elif property == "potential":
+            y = [self.u[i][i, :] for i in range(self.m)]
         else:
             y = self.compute(property, kwargs)
         ymin = min([np.amin(x) for x in y])
