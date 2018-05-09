@@ -28,8 +28,8 @@ setup(
     license='MIT license',
     description='Mixtures of Independently Collected Samples',
     long_description='%s\n%s' % (
-        re.compile('^.. start-badges.*^.. end-badges', re.M | re.S).sub('', read('README.rst')),
-        re.sub(':[a-z]+:`~?(.*?)`', r'``\1``', read('CHANGELOG.rst'))
+        read('docs/readme.rst'),
+        re.sub(':[a-z]+:`~?(.*?)`', r'``\1``', read('docs/changelog.rst'))
     ),
     author='Charlles R. A. Abreu',
     author_email='abreu@eq.ufrj.br',

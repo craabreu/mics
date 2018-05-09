@@ -10,11 +10,8 @@ include .cookiecutterrc
 include .editorconfig
 include .isort.cfg
 
-include AUTHORS.rst
-include CHANGELOG.rst
-include CONTRIBUTING.rst
 include LICENSE
-include README.rst
+include README.md
 
 include tox.ini tox_install.cmd .travis.yml appveyor.yml
 

@@ -9,7 +9,6 @@
 [![PyPI Wheel](https://img.shields.io/pypi/wheel/mics.svg)](https://pypi.python.org/pypi/mics)
 [![Supported versions](https://img.shields.io/pypi/pyversions/mics.svg)](https://pypi.python.org/pypi/mics)
 
-========
 Overview
 ========
 
