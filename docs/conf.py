@@ -26,7 +26,7 @@ project = 'MICS'
 year = '2017'
 author = 'Charlles R. A. Abreu'
 copyright = '{0}, {1}'.format(year, author)
-version = release = '0.1.0'
+version = release = '0.2.0'
 
 pygments_style = 'trac'
 templates_path = ['.']

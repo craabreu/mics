@@ -5,7 +5,7 @@
 [![Coverage Status](https://coveralls.io/repos/craabreu/mics/badge.svg?branch=master&service=github)](https://coveralls.io/r/craabreu/mics)
 [![Coverage Status](https://codecov.io/github/craabreu/mics/coverage.svg?branch=master)](https://codecov.io/github/craabreu/mics)
 [![PyPI Package latest release](https://img.shields.io/pypi/v/mics.svg)](https://pypi.python.org/pypi/mics)
-[![Commits since latest release](https://img.shields.io/github/commits-since/craabreu/mics/v0.1.0.svg)](https://github.com/craabreu/mics/compare/v0.1.0...master)
+[![Commits since latest release](https://img.shields.io/github/commits-since/craabreu/mics/v0.2.0.svg)](https://github.com/craabreu/mics/compare/v0.2.0...master)
 [![PyPI Wheel](https://img.shields.io/pypi/wheel/mics.svg)](https://pypi.python.org/pypi/mics)
 [![Supported versions](https://img.shields.io/pypi/pyversions/mics.svg)](https://pypi.python.org/pypi/mics)
 
