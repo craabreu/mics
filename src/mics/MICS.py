@@ -47,12 +47,13 @@ class MICS(mixture):
         verbose and info("Solving self-consistent equations...")
         iter = 1
         df = self._newton_raphson_iteration()
-        verbose and info("Maximum deviation at iteration %d:" % iter, max(abs(df)))
-        while any(abs(df) > tol):
-            iter += 1
-            self.f[1:m] += df
-            df = self._newton_raphson_iteration()
+        if m > 1:
             verbose and info("Maximum deviation at iteration %d:" % iter, max(abs(df)))
+            while any(abs(df) > tol):
+                iter += 1
+                self.f[1:m] += df
+                df = self._newton_raphson_iteration()
+                verbose and info("Maximum deviation at iteration %d:" % iter, max(abs(df)))
         verbose and info("Free energies after convergence:", self.f)
 
         self.Sp0 = sum(pi[i]**2*covariance(self.P[i], self.pm[i], b[i]) for i in range(m))

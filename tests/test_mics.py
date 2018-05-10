@@ -1,5 +1,6 @@
 import numpy as np
 import pandas as pd
+import pytest
 
 import mics
 
@@ -16,22 +17,40 @@ samples = mics.pool(verbose=True)
 for i in range(m):
     dataset = pd.read_csv(data[i], sep=" ")
     potential = "beta*E%d" % (i + 1)
-    difference = "beta*(E%d - E%d)" % (min(i+2, m), max(i, 1))
-    samples.add(dataset, potential, difference, beta=beta)
+    autocorr = "beta*(E%d - E%d)" % (min(i+2, m), max(i, 1))
+    samples.add(dataset, potential, autocorr, beta=beta)
 
-neff = [100.829779921697, 76.82824014457174, 69.63811023389404, 55.179192164637165]
-for i in range(4):
-    np.testing.assert_almost_equal(samples[i].neff, neff[i])
 
-# MICS
+def test_pool():
+    neff = [100.829779921697, 76.82824014457174, 69.63811023389404, 55.179192164637165]
+    for i in range(4):
+        assert samples[i].neff == pytest.approx(neff[i])
+
+
+def test_mics_single_sample():
+    dataset = pd.read_csv(data[0], sep=" ")
+    sample = mics.pool(verbose=True)
+    sample.add(dataset, "beta*E1", "beta*(E2 - E1)", beta=beta)
+    mixture = mics.MICS(sample, verbose=True)
+    assert mixture.Overlap[0][0] == pytest.approx(1.0)
+
+
+def test_mbar_single_sample():
+    dataset = pd.read_csv(data[0], sep=" ")
+    sample = mics.pool(verbose=True)
+    sample.add(dataset, "beta*E1", "beta*(E2 - E1)", beta=beta)
+    mixture = mics.MBAR(sample, verbose=True)
+    assert mixture.Overlap[0][0] == pytest.approx(1.0)
+
 
 mixture = mics.MICS(samples, verbose=True)
 
-fe = mixture.free_energies()
-print(fe)
 
-np.testing.assert_almost_equal(fe["f"][m], 3.6251084520815593)
-np.testing.assert_almost_equal(fe["df"][m], 0.16158119695537948)
+def test_mics_free_energies():
+    fe = mixture.free_energies()
+    assert fe["f"][m] == pytest.approx(3.6251084520815593)
+    assert fe["df"][m] == pytest.approx(0.16158119695537948)
+
 
 parameters = pd.DataFrame({"T": np.linspace(0.8, 1.2, 5)/(1.987E-3*beta)})
 
@@ -53,8 +72,13 @@ print(fu)
 # MBAR
 
 mbar = mics.MBAR(samples.copy().subsample(), verbose=True)
-fe = mbar.free_energies()
-print(fe)
+
+
+def test_mbar_free_energies():
+    fe = mbar.free_energies()
+    assert fe["f"][m] == pytest.approx(3.657670266845165)
+    assert fe["df"][m] == pytest.approx(0.1919766789868509)
+
 
 props = mbar.reweighting(potential="beta*E4",
                          properties={"E": "PotEng + KinEng", "E2": "(PotEng + KinEng)**2"},
