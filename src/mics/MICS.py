@@ -16,6 +16,7 @@ from mics.utils import covariance
 from mics.utils import cross_covariance
 from mics.utils import info
 from mics.utils import pinv
+from mics.utils import safe_exp
 
 
 class MICS(mixture):
@@ -99,12 +100,12 @@ class MICS(mixture):
         pm = self.pm
         b = self.b
 
-        w = [np.exp(self.u0[i] - u[i]) for i in S]
+        w, argmax = safe_exp([self.u0[i] - u[i] for i in S])
         z = [w[i]*y[i] for i in S]
 
         iw0 = 1.0/sum(pi[i]*np.mean(w[i], axis=1) for i in S)[0]
         yu = sum(pi[i]*np.mean(z[i], axis=1) for i in S)*iw0
-        fu = np.array([np.log(iw0) - self.f[ref]])
+        fu = np.array([np.log(iw0) - argmax - self.f[ref]])
 
         r = [np.concatenate((z[i], w[i])) for i in S]
         rm = [np.mean(r[i], axis=1) for i in S]

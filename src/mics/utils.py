@@ -139,7 +139,7 @@ def cross_covariance(y, ym, z, zm, b):
 
 # ==========================================================================================
 def logsumexp(x):
-    xmax = np.amax(x)
+    xmax = np.amax(x, axis=0)
     return xmax + np.log(np.sum(np.exp(x - xmax), axis=0))
 
 
@@ -168,6 +168,17 @@ def pinv(A):
     D, V = np.linalg.eigh(A)
     inv = np.vectorize(lambda x: 0.0 if np.isclose(x, 0.0) else 1.0/x)
     return np.matmul(V*inv(D), V.T)
+
+
+# ==========================================================================================
+def safe_exp(X):
+    Xmax = max([np.amax(x) for x in X])
+    return [np.exp(x - Xmax) for x in X], Xmax
+
+
+# ==========================================================================================
+def stdError(VarMat):
+    return np.sqrt(np.diagonal(VarMat).clip(0.0))
 
 
 # ==========================================================================================

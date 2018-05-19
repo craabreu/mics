@@ -21,6 +21,7 @@ from mics.utils import info
 from mics.utils import jacobian
 from mics.utils import multimap
 from mics.utils import overlapSampling
+from mics.utils import stdError
 
 
 class mixture:
@@ -161,14 +162,14 @@ class mixture:
                 if properties_needed:
                     y = self.compute(properties.values(), constants)
                 g, Theta = self.__reweight__(u, y, reference)
-                dg = np.sqrt(np.diagonal(Theta))
+                dg = stdError(Theta)
 
                 if (combinations):
                     if jacobian_needed:
                         func, Jac = jacobian(combinations.values(), names, constants)
                     h = func(g).flatten()
                     J = Jac(g)
-                    dh = np.sqrt(np.diagonal(multi_dot([J, Theta, J.T])))
+                    dh = stdError(multi_dot([J, Theta, J.T]))
                     results.append(np.block([[g, h], [dg, dh]]).T.flatten())
                 else:
                     results.append(np.stack([g, dg]).T.flatten())
