@@ -12,13 +12,13 @@ import numpy as np
 import pandas as pd
 from numpy.linalg import multi_dot
 
+from mics.funcs import derivative
+from mics.funcs import genfunc
+from mics.funcs import jacobian
 from mics.samples import pooledSample
 from mics.utils import InputError
 from mics.utils import cases
-from mics.utils import derivative
-from mics.utils import genfunc
 from mics.utils import info
-from mics.utils import jacobian
 from mics.utils import multimap
 from mics.utils import overlapSampling
 from mics.utils import stdError

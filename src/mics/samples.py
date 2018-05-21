@@ -16,8 +16,8 @@ from copy import deepcopy
 import numpy as np
 from pymbar import timeseries
 
+from mics.funcs import genfunc
 from mics.utils import covariance
-from mics.utils import genfunc
 from mics.utils import info
 from mics.utils import multimap
 

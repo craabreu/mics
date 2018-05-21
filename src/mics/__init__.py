@@ -5,6 +5,6 @@ from mics.MICS import MICS
 from mics.samples import pooledSample
 from mics.samples import sample
 
-pool = pooledSample  # Temporary
+pool = pooledSample  # TODO: remove this line and the 'pool' item below
 
 __all__ = ['sample', 'pool', 'pooledSample', 'MICS', 'MBAR']

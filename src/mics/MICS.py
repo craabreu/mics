@@ -1,7 +1,7 @@
 """
-.. module:: mixtures
+.. module:: MICS
    :platform: Unix, Windows
-   :synopsis: a module for defining the class :class:`Mixture`.
+   :synopsis: a module for defining the class :class:`MICS`.
 
 .. moduleauthor:: Charlles R. A. Abreu <abreu@eq.ufrj.br>
 
