@@ -85,7 +85,7 @@ class sample:
             info("Effective sample size via OBM:", self.neff)
 
 
-class pool:
+class pooledSample:
     """
     A pool of independently collected samples.
 

@@ -16,9 +16,3 @@ samples
 
 .. automodule:: mics.samples
     :members:
-
-utils
-=====
-
-.. automodule:: mics.utils
-    :members:

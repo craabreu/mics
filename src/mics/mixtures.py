@@ -12,7 +12,7 @@ import numpy as np
 import pandas as pd
 from numpy.linalg import multi_dot
 
-from mics.samples import pool
+from mics.samples import pooledSample
 from mics.utils import InputError
 from mics.utils import cases
 from mics.utils import derivative
@@ -54,7 +54,7 @@ class mixture:
             raise InputError("list of samples is empty")
         verbose and info("Number of samples:", m)
 
-        if type(samples) is pool:
+        if type(samples) is pooledSample:
             self.samples = samples.samples
             self.label = samples.label
         else:
