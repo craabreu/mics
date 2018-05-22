@@ -1,7 +1,7 @@
 """
 .. module:: funcs
    :platform: Unix, Windows
-   :synopsis: a module for dealing with functions
+   :synopsis: a module for dealing with functions applicable to data frames
 
 .. moduleauthor:: Charlles R. A. Abreu <abreu@eq.ufrj.br>
 
@@ -20,6 +20,43 @@ from sympy.utilities.lambdify import lambdify
 from mics.utils import InputError
 
 
+class func:
+    """
+    A class for storage, analysis, and evaluation of functions meant to
+    be applied to Pandas data frames.
+
+    Parameters
+    ----------
+    expression : str
+        A character string defining the function
+    variables : list(str)
+        A list of strings containing the variables (or a superset thereof)
+        of the defined function.
+    constants : dict(str:Number), optional, default = {}
+        A dictionary of constant names (str) associated to their values (Number)
+
+    """
+    def __init__(self, expression, variables, constants={}):
+        symbols = dict((v, Symbol("x.%s" % v)) for v in variables)
+        self.function = parse_func(expression, symbols, constants)
+        self.expression = expression
+        self.constants = constants
+
+    def lambdify(self):
+        """
+        Returns a callable object that can be applied to a Pandas data frame.
+
+        """
+        if self.function.free_symbols:
+            return lambdify("x", self.function, ["numpy"])
+        else:
+            value = self.function.evalf()
+
+            def f(x):
+                return pd.Series(np.full(x.shape[0], value))
+            return f
+
+
 # ==========================================================================================
 def parse_func(function, symbols, constants):
     local_dict = symbols.copy()
@@ -34,30 +71,6 @@ def parse_func(function, symbols, constants):
         if [s for s in func.free_symbols if s not in symbols.values()]:
             raise InputError("unknown symbols in function \"%s\"" % function)
     return func
-
-
-# ==========================================================================================
-def genfunc(function, variables, constants):
-    """
-    Returns a function based on the passed argument.
-    """
-    if callable(function):
-        def func(x):
-            return function(x, **constants)
-        return func
-
-    elif isinstance(function, str):
-        symbols = dict((v, Symbol("x.%s" % v)) for v in variables)
-        f = parse_func(function, symbols, constants)
-        if f.free_symbols:
-            return lambdify("x", f, ["numpy"])
-        else:
-            def func(x):
-                return pd.Series(np.full(x.shape[0], f.evalf()))
-            return func
-
-    else:
-        raise InputError("passed arg is neither a callable object nor a string")
 
 
 # ==========================================================================================

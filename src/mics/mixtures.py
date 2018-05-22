@@ -13,7 +13,7 @@ import pandas as pd
 from numpy.linalg import multi_dot
 
 from mics.funcs import derivative
-from mics.funcs import genfunc
+from mics.funcs import func
 from mics.funcs import jacobian
 from mics.samples import pooledSample
 from mics.utils import InputError
@@ -69,7 +69,7 @@ class mixture:
         n = self.n = np.array([s.dataset.shape[0] for s in samples])
         verbose and info("Sample sizes:", str(self.n))
 
-        potentials = [s.potential for s in samples]
+        potentials = [s.potential.lambdify() for s in samples]
         self.u = [multimap(potentials, s.dataset) for s in samples]
 
         self.f = overlapSampling(self.u)
@@ -87,11 +87,11 @@ class mixture:
         return m, n, neff
 
     # ======================================================================================
-    def compute(self, functions, constants):
+    def __compute__(self, functions, constants):
         if isinstance(functions, str):
-            funcs = [genfunc(functions, self.names, constants)]
+            funcs = [func(functions, self.names, constants).lambdify()]
         else:
-            funcs = [genfunc(f, self.names, constants) for f in functions]
+            funcs = [func(f, self.names, constants).lambdify() for f in functions]
         return [multimap(funcs, s.dataset) for s in self.samples]
 
     # ======================================================================================
@@ -144,7 +144,7 @@ class mixture:
         if not derivatives:
 
             try:
-                y = self.compute(properties.values(), kwargs)
+                y = self.__compute__(properties.values(), kwargs)
                 properties_needed = False
             except (InputError, KeyError):
                 properties_needed = True
@@ -158,9 +158,9 @@ class mixture:
 
             results = list()
             for constants in cases(conditions, kwargs, self.verbose):
-                u = self.compute(potential, constants)
+                u = self.__compute__(potential, constants)
                 if properties_needed:
-                    y = self.compute(properties.values(), constants)
+                    y = self.__compute__(properties.values(), constants)
                 g, Theta = self.__reweight__(u, y, reference)
                 dg = stdError(Theta)
 

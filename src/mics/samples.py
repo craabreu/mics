@@ -16,7 +16,7 @@ from copy import deepcopy
 import numpy as np
 from pymbar import timeseries
 
-from mics.funcs import genfunc
+from mics.funcs import func
 from mics.utils import covariance
 from mics.utils import info
 from mics.utils import multimap
@@ -61,7 +61,7 @@ class sample:
         verbose and info("Properties:", ", ".join(names))
 
         self.dataset = dataset
-        self.potential = genfunc(potential, names, kwargs)
+        self.potential = func(potential, names, kwargs)
         self.label = str(label)
         n = self.n = dataset.shape[0]
         b = self.b = batchsize if batchsize else int(np.sqrt(n))
@@ -70,8 +70,11 @@ class sample:
             info("Sample size:", n)
             info("Batch size:", b)
 
-        self.autocorr = genfunc(autocorr, names, kwargs) if autocorr else self.potential
-        y = multimap([self.autocorr], dataset)
+        if autocorr is None:
+            self.autocorr = self.potential
+        else:
+            self.autocorr = func(autocorr, names, kwargs)
+        y = multimap([self.autocorr.lambdify()], dataset)
         ym = np.mean(y, axis=1)
         S1 = covariance(y, ym, 1).item(0)
         Sb = covariance(y, ym, b).item(0)
@@ -112,7 +115,7 @@ class pooledSample:
             self.verbose and info("Original sample size:", sample.n)
             old = sample.dataset.index
             if compute_inefficiency:
-                y = multimap([sample.autocorr], sample.dataset)
+                y = multimap([sample.autocorr.lambdify()], sample.dataset)
                 g = timeseries.statisticalInefficiency(y[0])
                 self.verbose and info("Statistical inefficency via integrated ACF:", g)
             else:
