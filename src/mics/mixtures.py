@@ -113,7 +113,7 @@ class mixture:
                     properties={},
                     derivatives={},
                     combinations={},
-                    conditions=pd.DataFrame(),
+                    conditions={},
                     reference=0,
                     **kwargs):
         """
@@ -125,7 +125,7 @@ class mixture:
             properties (dict of strings):
             combinations (dict of strings):
             derivatives (dict of tuples):
-            conditions (pandas.DataFrame):
+            conditions (dict or DataFrame):
             verbose (boolean):
             **kwargs:
 
@@ -135,6 +135,10 @@ class mixture:
         # TODO: allow limited recursion in combinations
 
         names = ['f'] + list(properties.keys())
+        if isinstance(conditions, dict):
+            condframe = pd.DataFrame(data=conditions)
+        else:
+            condframe = conditions
 
         if self.verbose:
             info("Reweighting requested in %s case:" % self.method, self.title)
@@ -157,7 +161,7 @@ class mixture:
                     jacobian_needed = True
 
             results = list()
-            for constants in cases(conditions, kwargs, self.verbose):
+            for constants in cases(condframe, kwargs, self.verbose):
                 u = self.__compute__(potential, constants)
                 if properties_needed:
                     y = self.__compute__(properties.values(), constants)
@@ -175,18 +179,18 @@ class mixture:
                     results.append(np.stack([g, dg]).T.flatten())
 
             header = sum([[x, "d"+x] for x in names + list(combinations.keys())], [])
-#             if conditions.empty:
+#             if condframe.empty:
 #                 return dict(zip(header, results[0]))
 #             else:
-#                 return pd.concat([conditions, pd.DataFrame(results, columns=header)], 1)
-            return pd.concat([conditions, pd.DataFrame(results, columns=header)], 1)
+#                 return pd.concat([condframe, pd.DataFrame(results, columns=header)], 1)
+            return pd.concat([condframe, pd.DataFrame(results, columns=header)], 1)
 
         else:
 
             def dec(x):
                 return "__%s__" % x
 
-            parameters = list(conditions.columns) + list(kwargs.keys())
+            parameters = list(condframe.columns) + list(kwargs.keys())
             zyx = [(key, value[0], value[1]) for key, value in derivatives.items()]
 
             props = {}
@@ -205,7 +209,7 @@ class mixture:
             unwanted = sum([[x, "d"+x] for x in props.keys()], [])
 
             return self.reweighting(potential, dict(properties, **props), {},
-                                    dict(combs, **combinations), conditions, reference,
+                                    dict(combs, **combinations), condframe, reference,
                                     **kwargs).drop(unwanted, axis=1)
 
     # ======================================================================================
