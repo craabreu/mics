@@ -12,12 +12,11 @@ import numpy as np
 from numpy.linalg import multi_dot
 from pymbar import mbar
 
-from mics.mixtures import mixture
 from mics.utils import info
 from mics.utils import logsumexp
 
 
-class MBAR(mixture):
+class MBAR:
     """A class for Multistate Bennett Acceptance Ratio amples (MICS)
 
         Args:
@@ -33,31 +32,36 @@ class MBAR(mixture):
     """
 
     # ======================================================================================
-    def __init__(self, samples, title="Untitled", verbose=False, tol=1.0E-12):
-
-        m, n, neff = self.__define__(samples, title, verbose)
-
-        mb = self.MBAR = mbar.MBAR(np.hstack(self.u), n, relative_tolerance=tol,
-                                   initial_f_k=self.f)
-
-        self.f = mb.f_k
-        verbose and info("Free energies after convergence:", self.f)
-
-        flnpi = (self.f + np.log(n/sum(n)))[:, np.newaxis]
-        self.u0 = [-logsumexp(flnpi - u) for u in self.u]
-        self.P = [np.exp(flnpi - self.u[i] + self.u0[i]) for i in range(m)]
-
-        Theta = mb._computeAsymptoticCovarianceMatrix(np.exp(mb.Log_W_nk), mb.N_k)
-        self.Theta = np.array(Theta)
-        verbose and info("Free-energy covariance matrix:", self.Theta)
-
-        self.Overlap = mb.N_k*np.matmul(mb.W_nk.T, mb.W_nk)
-        verbose and info("Overlap matrix:", self.Overlap)
+    def __init__(mixture):
+        pass
 
     # ======================================================================================
-    def __reweight__(self, u, y, ref=0):
+    def __initialize__(self, mixture, tol):
+        m = mixture.m
+        n = mixture.n
+        verbose = mixture.verbose
+
+        mb = self.MBAR = mbar.MBAR(np.hstack(mixture.u), n, relative_tolerance=tol,
+                                   initial_f_k=mixture.f)
+
+        mixture.f = mb.f_k
+        verbose and info("Free energies after convergence:", mixture.f)
+
+        flnpi = (mixture.f + np.log(n/sum(n)))[:, np.newaxis]
+        mixture.u0 = [-logsumexp(flnpi - u) for u in mixture.u]
+        self.P = [np.exp(flnpi - mixture.u[i] + mixture.u0[i]) for i in range(m)]
+
+        Theta = mb._computeAsymptoticCovarianceMatrix(np.exp(mb.Log_W_nk), mb.N_k)
+        mixture.Theta = np.array(Theta)
+        verbose and info("Free-energy covariance matrix:", mixture.Theta)
+
+        mixture.Overlap = mb.N_k*np.matmul(mb.W_nk.T, mb.W_nk)
+        verbose and info("Overlap matrix:", mixture.Overlap)
+
+    # ======================================================================================
+    def __reweight__(self, mixture, u, y, ref=0):
         u_ln = np.stack([np.hstack(u).flatten(),                 # new state = 0
-                         np.hstack(x[ref, :] for x in self.u)])  # reference state = 1
+                         np.hstack(x[ref, :] for x in mixture.u)])  # reference state = 1
 
         A_n = np.hstack(y)  # properties
         n = A_n.shape[0]    # number of properties

@@ -15,6 +15,7 @@ from numpy.linalg import multi_dot
 from mics.funcs import derivative
 from mics.funcs import func
 from mics.funcs import jacobian
+from mics.MICS import MICS
 from mics.samples import pooledSample
 from mics.utils import InputError
 from mics.utils import cases
@@ -39,15 +40,14 @@ class mixture:
 
     """
 
-    # ======================================================================================
-    def __define__(self, samples, title, verbose):
+    def __init__(self, samples, method=MICS(), title="Untitled", verbose=False, tol=1.0E-12):
 
         np.set_printoptions(precision=4, threshold=15, edgeitems=4, suppress=True)
 
         self.title = title
         self.verbose = verbose
-        self.method = type(self).__name__
-        verbose and info("Setting up %s case:" % self.method, title)
+        self.method = method
+        verbose and info("Setting up %s case:" % self.method.__class__.__name__, title)
 
         m = self.m = len(samples)
         if m == 0:
@@ -66,7 +66,7 @@ class mixture:
             raise InputError("provided samples have distinct properties")
         verbose and info("Properties:", ", ".join(names))
 
-        n = self.n = np.array([s.dataset.shape[0] for s in samples])
+        self.n = np.array([s.dataset.shape[0] for s in samples])
         verbose and info("Sample sizes:", str(self.n))
 
         potentials = [s.potential.lambdify() for s in samples]
@@ -75,7 +75,7 @@ class mixture:
         self.f = overlapSampling(self.u)
         verbose and info("Initial free-energy guess:", self.f)
 
-        neff = self.neff = np.array([s.neff for s in samples])
+        self.neff = np.array([s.neff for s in samples])
 
         self.frame = pd.DataFrame(index=np.arange(m) + 1)
         if self.label:
@@ -84,7 +84,7 @@ class mixture:
         else:
             self.states = ["state %d" % (i+1) for i in range(m)]
 
-        return m, n, neff
+        self.method.__initialize__(self, tol)
 
     # ======================================================================================
     def __compute__(self, functions, constants):
@@ -141,7 +141,7 @@ class mixture:
             condframe = conditions
 
         if self.verbose:
-            info("Reweighting requested in %s case:" % self.method, self.title)
+            info("Reweighting requested in %s case:" % self.method.__class__.__name__, self.title)
             info("Reduced potential:", potential)
             kwargs and info("Provided constants: ", kwargs)
 
@@ -165,7 +165,7 @@ class mixture:
                 u = self.__compute__(potential, constants)
                 if properties_needed:
                     y = self.__compute__(properties.values(), constants)
-                g, Theta = self.__reweight__(u, y, reference)
+                g, Theta = self.method.__reweight__(self, u, y, reference)
                 dg = stdError(Theta)
 
                 if (combinations):

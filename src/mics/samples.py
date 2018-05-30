@@ -63,6 +63,7 @@ class sample:
         self.dataset = dataset
         self.potential = func(potential, names, kwargs)
         self.label = str(label)
+        self.constants = kwargs
         n = self.n = dataset.shape[0]
         b = self.b = batchsize if batchsize else int(np.sqrt(n))
 

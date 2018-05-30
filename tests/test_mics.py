@@ -31,7 +31,7 @@ def test_mics_single_sample():
     dataset = pd.read_csv(data[0], sep=" ")
     sample = mics.pooledSample(verbose=True)
     sample.add(dataset, "beta*E1", "beta*(E2 - E1)", beta=beta)
-    mixture = mics.MICS(sample, verbose=True)
+    mixture = mics.mixture(sample, method=mics.MICS(), verbose=True)
     assert mixture.Overlap[0][0] == pytest.approx(1.0)
 
 
@@ -39,11 +39,11 @@ def test_mbar_single_sample():
     dataset = pd.read_csv(data[0], sep=" ")
     sample = mics.pooledSample(verbose=True)
     sample.add(dataset, "beta*E1", "beta*(E2 - E1)", beta=beta)
-    mixture = mics.MBAR(sample, verbose=True)
+    mixture = mics.mixture(sample, mics.MBAR(), verbose=True)
     assert mixture.Overlap[0][0] == pytest.approx(1.0)
 
 
-mixture = mics.MICS(samples, verbose=True)
+mixture = mics.mixture(samples, verbose=True)
 
 
 def test_mics_free_energies():
@@ -71,7 +71,7 @@ print(fu)
 
 # MBAR
 
-mbar = mics.MBAR(samples.copy().subsample(), verbose=True)
+mbar = mics.mixture(samples.copy().subsample(), mics.MBAR(), verbose=True)
 
 
 def test_mbar_free_energies():

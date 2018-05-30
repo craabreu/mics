@@ -11,7 +11,6 @@
 import numpy as np
 from numpy.linalg import multi_dot
 
-from mics.mixtures import mixture
 from mics.utils import covariance
 from mics.utils import cross_covariance
 from mics.utils import info
@@ -19,7 +18,7 @@ from mics.utils import pinv
 from mics.utils import safe_exp
 
 
-class MICS(mixture):
+class MICS:
     """A mixture of independently collected samples (MICS)
 
         Args:
@@ -35,44 +34,48 @@ class MICS(mixture):
     """
 
     # ======================================================================================
-    def __init__(self, samples, title="Untitled", verbose=False, tol=1.0E-12,
-                 composition=None):
+    def __init__(mixture, composition=None):
+        mixture.composition = composition
 
-        m, n, neff = self.__define__(samples, title, verbose)
+    # ======================================================================================
+    def __initialize__(self, mixture, tol):
+        m = mixture.m
+        neff = mixture.neff
+        verbose = mixture.verbose
 
-        b = self.b = [s.b for s in samples]
-        x = neff if composition is None else np.array(composition)
+        b = self.b = [s.b for s in mixture.samples]
+        x = neff if self.composition is None else np.array(self.composition)
         pi = self.pi = x/np.sum(x)
         verbose and info("Mixture composition:", pi)
 
         verbose and info("Solving self-consistent equations...")
         iter = 1
-        df = self._newton_raphson_iteration()
+        df = self._newton_raphson_iteration(mixture)
         if m > 1:
             verbose and info("Maximum deviation at iteration %d:" % iter, max(abs(df)))
             while any(abs(df) > tol):
                 iter += 1
-                self.f[1:m] += df
-                df = self._newton_raphson_iteration()
+                mixture.f[1:m] += df
+                df = self._newton_raphson_iteration(mixture)
                 verbose and info("Maximum deviation at iteration %d:" % iter, max(abs(df)))
-        verbose and info("Free energies after convergence:", self.f)
+        verbose and info("Free energies after convergence:", mixture.f)
 
         self.Sp0 = sum(pi[i]**2*covariance(self.P[i], self.pm[i], b[i]) for i in range(m))
-        self.Theta = multi_dot([self.iB0, self.Sp0, self.iB0])
-        verbose and info("Free-energy covariance matrix:", self.Theta)
+        mixture.Theta = multi_dot([self.iB0, self.Sp0, self.iB0])
+        verbose and info("Free-energy covariance matrix:", mixture.Theta)
 
-        self.Overlap = np.stack(self.pm)
-        verbose and info("Overlap matrix:", self.Overlap)
+        mixture.Overlap = np.stack(self.pm)
+        verbose and info("Overlap matrix:", mixture.Overlap)
 
     # ======================================================================================
-    def _newton_raphson_iteration(self):
-        m = self.m
+    def _newton_raphson_iteration(self, mixture):
+        m = mixture.m
         pi = self.pi
-        n = self.n
+        n = mixture.n
         S = range(m)
 
-        x = np.hstack(self.u)
-        np.subtract((self.f + np.log(pi))[:, np.newaxis], x, out=x)
+        x = np.hstack(mixture.u)
+        np.subtract((mixture.f + np.log(pi))[:, np.newaxis], x, out=x)
         xmax = np.amax(x, axis=0)
         np.subtract(x, xmax, out=x)
         np.exp(x, out=x)
@@ -84,28 +87,28 @@ class MICS(mixture):
 
         markers = np.cumsum(n[0:m-1])
         P = self.P = np.split(x, markers, axis=1)
-        self.u0 = np.split(y, markers)
+        mixture.u0 = np.split(y, markers)
         self.pm = [np.mean(p, axis=1) for p in self.P]
-        p0 = self.p0 = sum(pi[i]*self.pm[i] for i in S)
+        p0 = self.P0 = sum(pi[i]*self.pm[i] for i in S)
         self.B0 = np.diag(p0) - sum(pi[i]/n[i]*np.matmul(P[i], P[i].T) for i in S)
         self.iB0 = pinv(self.B0)
         df = np.matmul(self.iB0, pi - p0)
         return df[1:m] - df[0]
 
     # ======================================================================================
-    def __reweight__(self, u, y, ref=0):
-        S = range(self.m)
+    def __reweight__(self, mixture, u, y, ref=0):
+        S = range(mixture.m)
         pi = self.pi
         P = self.P
         pm = self.pm
         b = self.b
 
-        w, argmax = safe_exp([self.u0[i] - u[i] for i in S])
+        w, argmax = safe_exp([mixture.u0[i] - u[i] for i in S])
         z = [w[i]*y[i] for i in S]
 
         iw0 = 1.0/sum(pi[i]*np.mean(w[i], axis=1) for i in S)[0]
         yu = sum(pi[i]*np.mean(z[i], axis=1) for i in S)*iw0
-        fu = np.array([np.log(iw0) - argmax - self.f[ref]])
+        fu = np.array([np.log(iw0) - argmax - mixture.f[ref]])
 
         r = [np.concatenate((z[i], w[i])) for i in S]
         rm = [np.mean(r[i], axis=1) for i in S]
@@ -114,7 +117,7 @@ class MICS(mixture):
         Ss0 = np.block([[self.Sp0, Sp0r0], [Sp0r0.T, Sr0]])
 
         pu = sum(pi[i]*np.mean(w[i]*P[i], axis=1) for i in S)*iw0
-        pytu = sum(pi[i]*np.matmul(P[i], z[i].T)/self.n[i] for i in S)*iw0
+        pytu = sum(pi[i]*np.matmul(P[i], z[i].T)/mixture.n[i] for i in S)*iw0
 
         Dyup0 = np.matmul(self.iB0, np.outer(pu, yu) - pytu)
         Dyuz0 = np.diag(np.repeat(iw0, len(yu)))
