@@ -8,4 +8,6 @@ from mics.samples import sample
 
 pool = pooledSample  # TODO: remove this line and the 'pool' item below
 
+verbose = False
+
 __all__ = ['sample', 'pool', 'pooledSample', 'mixture', 'MICS', 'MBAR']

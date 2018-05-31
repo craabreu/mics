@@ -12,6 +12,7 @@ import numpy as np
 from numpy.linalg import multi_dot
 from pymbar import mbar
 
+import mics
 from mics.utils import info
 from mics.utils import logsumexp
 
@@ -39,13 +40,12 @@ class MBAR:
     def __initialize__(self, mixture, tol):
         m = mixture.m
         n = mixture.n
-        verbose = mixture.verbose
 
         mb = self.MBAR = mbar.MBAR(np.hstack(mixture.u), n, relative_tolerance=tol,
                                    initial_f_k=mixture.f)
 
         mixture.f = mb.f_k
-        verbose and info("Free energies after convergence:", mixture.f)
+        mics.verbose and info("Free energies after convergence:", mixture.f)
 
         flnpi = (mixture.f + np.log(n/sum(n)))[:, np.newaxis]
         mixture.u0 = [-logsumexp(flnpi - u) for u in mixture.u]
@@ -53,10 +53,10 @@ class MBAR:
 
         Theta = mb._computeAsymptoticCovarianceMatrix(np.exp(mb.Log_W_nk), mb.N_k)
         mixture.Theta = np.array(Theta)
-        verbose and info("Free-energy covariance matrix:", mixture.Theta)
+        mics.verbose and info("Free-energy covariance matrix:", mixture.Theta)
 
         mixture.Overlap = mb.N_k*np.matmul(mb.W_nk.T, mb.W_nk)
-        verbose and info("Overlap matrix:", mixture.Overlap)
+        mics.verbose and info("Overlap matrix:", mixture.Overlap)
 
     # ======================================================================================
     def __reweight__(self, mixture, u, y, ref=0):

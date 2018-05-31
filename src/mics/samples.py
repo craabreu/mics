@@ -15,6 +15,7 @@ from copy import deepcopy
 import numpy as np
 from pymbar import timeseries
 
+import mics
 from mics.funcs import func
 from mics.utils import covariance
 from mics.utils import info
@@ -49,13 +50,13 @@ class sample:
 
     """
 
-    def __init__(self, dataset, potential, autocorr=None, batchsize=None, verbose=False, **constants):
+    def __init__(self, dataset, potential, autocorr=None, batchsize=None, **constants):
 
         names = list(dataset.columns)
         n = len(dataset)
         b = self.b = batchsize if batchsize else int(np.sqrt(n))
 
-        if verbose:
+        if mics.verbose:
             info("\n=== Setting up new sample ===")
             info("Properties:", ", ".join(names))
             info("Constants:", constants)
@@ -75,7 +76,7 @@ class sample:
             raise FloatingPointError("unable to determine effective sample size")
         self.neff = n*S1/Sb
 
-        if verbose:
+        if mics.verbose:
             info("Variance disregarding autocorrelation:", S1)
             info("Variance via Overlapping Batch Means:", Sb)
             info("Effective sample size:", self.neff)
@@ -88,14 +89,13 @@ class pooledSample:
     """
 
     # ======================================================================================
-    def __init__(self, label="", verbose=False):
+    def __init__(self, label=""):
         self.samples = list()
         self.label = str(label)
-        self.verbose = verbose
 
     # ======================================================================================
     def add(self, *args, **kwargs):
-        self.samples.append(sample(*args, verbose=self.verbose, **kwargs))
+        self.samples.append(sample(*args, **kwargs))
 
     # ======================================================================================
     def copy(self):
@@ -103,22 +103,22 @@ class pooledSample:
 
     # ======================================================================================
     def subsample(self, compute_inefficiency=True):
-        self.verbose and info("Performing subsampling...")
+        mics.verbose and info("Performing subsampling...")
         for (i, sample) in enumerate(self.samples):
             n = len(sample.dataset)
-            self.verbose and info("Original sample size:", n)
+            mics.verbose and info("Original sample size:", n)
             old = sample.dataset.index
             if compute_inefficiency:
                 y = multimap([sample.autocorr.lambdify()], sample.dataset)
                 g = timeseries.statisticalInefficiency(y[0])
-                self.verbose and info("Statistical inefficency via integrated ACF:", g)
+                mics.verbose and info("Statistical inefficency via integrated ACF:", g)
             else:
                 g = n/sample.neff
-                self.verbose and info("Statistical inefficency via Overlapping Batch Means:", g)
+                mics.verbose and info("Statistical inefficency via Overlapping Batch Means:", g)
             new = timeseries.subsampleCorrelatedData(old, g)
             sample.dataset = sample.dataset.reindex(new)
             sample.neff = len(new)
-            self.verbose and info("New sample size:", sample.neff)
+            mics.verbose and info("New sample size:", sample.neff)
         return self
 
     # ======================================================================================

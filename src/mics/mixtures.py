@@ -12,6 +12,7 @@ import numpy as np
 import pandas as pd
 from numpy.linalg import multi_dot
 
+import mics
 from mics.funcs import derivative
 from mics.funcs import func
 from mics.funcs import jacobian
@@ -40,19 +41,18 @@ class mixture:
 
     """
 
-    def __init__(self, samples, method=MICS(), title="Untitled", verbose=False, tol=1.0E-12):
+    def __init__(self, samples, method=MICS(), title="Untitled", tol=1.0E-12):
 
         np.set_printoptions(precision=4, threshold=15, edgeitems=4, suppress=True)
 
         self.title = title
-        self.verbose = verbose
         self.method = method
-        verbose and info("Setting up %s case:" % self.method.__class__.__name__, title)
+        mics.verbose and info("Setting up %s case:" % self.method.__class__.__name__, title)
 
         m = self.m = len(samples)
         if m == 0:
             raise InputError("list of samples is empty")
-        verbose and info("Number of samples:", m)
+        mics.verbose and info("Number of samples:", m)
 
         if type(samples) is pooledSample:
             self.samples = samples.samples
@@ -64,16 +64,16 @@ class mixture:
         names = self.names = list(samples[0].dataset.columns)
         if any(list(s.dataset.columns) != names for s in samples):
             raise InputError("provided samples have distinct properties")
-        verbose and info("Properties:", ", ".join(names))
+        mics.verbose and info("Properties:", ", ".join(names))
 
         self.n = np.array([s.dataset.shape[0] for s in samples])
-        verbose and info("Sample sizes:", str(self.n))
+        mics.verbose and info("Sample sizes:", str(self.n))
 
         potentials = [s.potential.lambdify() for s in samples]
         self.u = [multimap(potentials, s.dataset) for s in samples]
 
         self.f = overlapSampling(self.u)
-        verbose and info("Initial free-energy guess:", self.f)
+        mics.verbose and info("Initial free-energy guess:", self.f)
 
         self.neff = np.array([s.neff for s in samples])
 
@@ -140,7 +140,7 @@ class mixture:
         else:
             condframe = conditions
 
-        if self.verbose:
+        if mics.verbose:
             info("Reweighting requested in %s case:" % self.method.__class__.__name__, self.title)
             info("Reduced potential:", potential)
             kwargs and info("Provided constants: ", kwargs)
@@ -161,7 +161,7 @@ class mixture:
                     jacobian_needed = True
 
             results = list()
-            for constants in cases(condframe, kwargs, self.verbose):
+            for constants in cases(condframe, kwargs, mics.verbose):
                 u = self.__compute__(potential, constants)
                 if properties_needed:
                     y = self.__compute__(properties.values(), constants)
@@ -220,8 +220,8 @@ class mixture:
             interval=None,
             **kwargs):
 
-        self.verbose and info("PMF requested - %s case:" % self.method, self.title)
-        self.verbose and info("Reduced potential:", potential)
+        mics.verbose and info("PMF requested - %s case:" % self.method, self.title)
+        mics.verbose and info("Reduced potential:", potential)
         u = self.compute(potential, kwargs)
 
         z = self.compute(property, kwargs)
@@ -236,7 +236,7 @@ class mixture:
         results = list()
         for i in range(bins):
             zc = zmin + delta*(i + 0.5)
-            self.verbose and info("Bin[%d]:" % (i + 1), "%s = %s" % (property, str(zc)))
+            mics.verbose and info("Bin[%d]:" % (i + 1), "%s = %s" % (property, str(zc)))
             y = [np.equal(x, i).astype(np.float) for x in ibin]
             yu, Theta = self.__reweight__(u, y)
             if yu[1] > 0.0:

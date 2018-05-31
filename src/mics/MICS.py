@@ -11,6 +11,7 @@
 import numpy as np
 from numpy.linalg import multi_dot
 
+import mics
 from mics.utils import covariance
 from mics.utils import cross_covariance
 from mics.utils import info
@@ -41,31 +42,30 @@ class MICS:
     def __initialize__(self, mixture, tol):
         m = mixture.m
         neff = mixture.neff
-        verbose = mixture.verbose
 
         b = self.b = [s.b for s in mixture.samples]
         x = neff if self.composition is None else np.array(self.composition)
         pi = self.pi = x/np.sum(x)
-        verbose and info("Mixture composition:", pi)
+        mics.verbose and info("Mixture composition:", pi)
 
-        verbose and info("Solving self-consistent equations...")
+        mics.verbose and info("Solving self-consistent equations...")
         iter = 1
         df = self._newton_raphson_iteration(mixture)
         if m > 1:
-            verbose and info("Maximum deviation at iteration %d:" % iter, max(abs(df)))
+            mics.verbose and info("Maximum deviation at iteration %d:" % iter, max(abs(df)))
             while any(abs(df) > tol):
                 iter += 1
                 mixture.f[1:m] += df
                 df = self._newton_raphson_iteration(mixture)
-                verbose and info("Maximum deviation at iteration %d:" % iter, max(abs(df)))
-        verbose and info("Free energies after convergence:", mixture.f)
+                mics.verbose and info("Maximum deviation at iteration %d:" % iter, max(abs(df)))
+        mics.verbose and info("Free energies after convergence:", mixture.f)
 
         self.Sp0 = sum(pi[i]**2*covariance(self.P[i], self.pm[i], b[i]) for i in range(m))
         mixture.Theta = multi_dot([self.iB0, self.Sp0, self.iB0])
-        verbose and info("Free-energy covariance matrix:", mixture.Theta)
+        mics.verbose and info("Free-energy covariance matrix:", mixture.Theta)
 
         mixture.Overlap = np.stack(self.pm)
-        verbose and info("Overlap matrix:", mixture.Overlap)
+        mics.verbose and info("Overlap matrix:", mixture.Overlap)
 
     # ======================================================================================
     def _newton_raphson_iteration(self, mixture):
