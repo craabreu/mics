@@ -179,10 +179,10 @@ class mixture:
                     results.append(np.stack([g, dg]).T.flatten())
 
             header = sum([[x, "d"+x] for x in names + list(combinations.keys())], [])
-#             if condframe.empty:
-#                 return dict(zip(header, results[0]))
-#             else:
-#                 return pd.concat([condframe, pd.DataFrame(results, columns=header)], 1)
+            # if condframe.empty:
+            #     return dict(zip(header, results[0]))
+            # else:
+            #     return pd.concat([condframe, pd.DataFrame(results, columns=header)], 1)
             return pd.concat([condframe, pd.DataFrame(results, columns=header)], 1)
 
         else:

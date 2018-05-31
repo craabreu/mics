@@ -5,7 +5,6 @@
 
 .. moduleauthor:: Charlles R. A. Abreu <abreu@eq.ufrj.br>
 
-
 """
 
 # TODO: save potential and autocor as strings rather than lambda functions, so that
@@ -24,57 +23,50 @@ from mics.utils import multimap
 
 class sample:
     """
-    A sample of configurations collected at a specific equilibrium state, aimed to be part
-    of a mixture of independently collected samples (MICS).
+    A sample of configurations collected at a specific equilibrium state whose
+    probability density function is proportional to `exp(-potential(x))`. Each
+    configuration `x` is represented by a set of collective variables.
 
-        Args:
-            dataset (pandas.DataFrame):
-                a data frame whose rows represent configurations datasetd according to a
-                given probability distribution and whose columns contain a number of
-                properties evaluated for such configurations.
-            potential (function):
-                the reduced potential that defines the equilibrium sample. This function
-                might for instance receive **x** and return the result of an element-wise
-                calculation involving **x["a"]**, **x["b"]**, etc, with **"a"**, **"b"**,
-                etc being names of properties in **dataset**.
-            autocorr (function, optional):
-                a function similar to **potential**, but whose result is an autocorrelated
-                property to be used for determining the effective dataset size. If omitted,
-                **potential** will be used to for this purpose.
-
-        Note:
-            Formally, functions **potential** and **autocorr** must receive **x** and
-            return **y**, where `length(y) == nrow(x)`.
+    Parameters
+    ----------
+        dataset : pandas.DataFrame
+            A data frame whose rows contain the values of a set of collective
+            variables representing configurations sampled according to a given
+            probability distribution.
+        potential : string
+            The reduced potential that defines the probability density at the
+            sampled equilibrium sample. This must be a function of the column
+            names in `dataset`.
+        autocorr : string, optional, default = potential
+            An property to be used for autocorrelation analysis and effective
+            sample size calculation through the Overlapping Batch Mean (OBM)
+            method. This must be a function of the column names in `dataset`.
+        batchsize : int, optional, default = sqrt(dataset size)
+            The size of each batch (window) to be used for the OBM analysis.
+        **constants : keyword arguments
+            Value assignment for constants present in functions `potential`
+            and `autocorr`.
 
     """
 
-    def __init__(self, dataset, potential, autocorr=None, label=None,
-                 batchsize=None, verbose=False, **kwargs):
-
-        if verbose:
-            info("Setting up sample with label:", label)
-            info("Reduced potential:", potential)
-            info("Autocorrelated property:", (autocorr if autocorr else potential))
-            info("Constants:", kwargs)
+    def __init__(self, dataset, potential, autocorr=None, batchsize=None, verbose=False, **constants):
 
         names = list(dataset.columns)
-        verbose and info("Properties:", ", ".join(names))
-
-        self.dataset = dataset
-        self.potential = func(potential, names, kwargs)
-        self.label = str(label)
-        self.constants = kwargs
-        n = self.n = dataset.shape[0]
+        n = len(dataset)
         b = self.b = batchsize if batchsize else int(np.sqrt(n))
 
         if verbose:
+            info("\n=== Setting up new sample ===")
+            info("Properties:", ", ".join(names))
+            info("Constants:", constants)
+            info("Reduced potential:", potential)
+            info("Autocorrelation analysis property:", autocorr if autocorr else potential)
             info("Sample size:", n)
             info("Batch size:", b)
 
-        if autocorr is None:
-            self.autocorr = self.potential
-        else:
-            self.autocorr = func(autocorr, names, kwargs)
+        self.dataset = dataset
+        self.potential = func(potential, names, constants)
+        self.autocorr = self.potential if autocorr is None else func(autocorr, names, constants)
         y = multimap([self.autocorr.lambdify()], dataset)
         ym = np.mean(y, axis=1)
         S1 = covariance(y, ym, 1).item(0)
@@ -86,7 +78,7 @@ class sample:
         if verbose:
             info("Variance disregarding autocorrelation:", S1)
             info("Variance via Overlapping Batch Means:", Sb)
-            info("Effective sample size via OBM:", self.neff)
+            info("Effective sample size:", self.neff)
 
 
 class pooledSample:
@@ -113,19 +105,20 @@ class pooledSample:
     def subsample(self, compute_inefficiency=True):
         self.verbose and info("Performing subsampling...")
         for (i, sample) in enumerate(self.samples):
-            self.verbose and info("Original sample size:", sample.n)
+            n = len(sample.dataset)
+            self.verbose and info("Original sample size:", n)
             old = sample.dataset.index
             if compute_inefficiency:
                 y = multimap([sample.autocorr.lambdify()], sample.dataset)
                 g = timeseries.statisticalInefficiency(y[0])
                 self.verbose and info("Statistical inefficency via integrated ACF:", g)
             else:
-                g = sample.n/sample.neff
+                g = n/sample.neff
                 self.verbose and info("Statistical inefficency via Overlapping Batch Means:", g)
             new = timeseries.subsampleCorrelatedData(old, g)
             sample.dataset = sample.dataset.reindex(new)
-            sample.neff = sample.n = len(new)
-            self.verbose and info("New sample size:", sample.n)
+            sample.neff = len(new)
+            self.verbose and info("New sample size:", sample.neff)
         return self
 
     # ======================================================================================
