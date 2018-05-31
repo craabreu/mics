@@ -10,8 +10,6 @@
 # TODO: save potential and autocor as strings rather than lambda functions, so that
 #       one can use pickle to save a sample or a mixture object.
 
-from copy import deepcopy
-
 import numpy as np
 from pymbar import timeseries
 
@@ -38,7 +36,7 @@ class sample:
             The reduced potential that defines the probability density at the
             sampled equilibrium sample. This must be a function of the column
             names in `dataset`.
-        autocorr : string, optional, default = potential
+        acfun : string, optional, default = potential
             An property to be used for autocorrelation analysis and effective
             sample size calculation through the Overlapping Batch Mean (OBM)
             method. This must be a function of the column names in `dataset`.
@@ -50,8 +48,7 @@ class sample:
 
     """
 
-    def __init__(self, dataset, potential, autocorr=None, batchsize=None, **constants):
-
+    def __init__(self, dataset, potential, acfun=None, batchsize=None, **constants):
         names = list(dataset.columns)
         n = len(dataset)
         b = self.b = batchsize if batchsize else int(np.sqrt(n))
@@ -60,15 +57,15 @@ class sample:
             info("\n=== Setting up new sample ===")
             info("Properties:", ", ".join(names))
             info("Constants:", constants)
-            info("Reduced potential:", potential)
-            info("Autocorrelation analysis property:", autocorr if autocorr else potential)
+            info("Reduced potential function:", potential)
+            info("Autocorrelation analysis function:", acfun if acfun else potential)
             info("Sample size:", n)
             info("Batch size:", b)
 
         self.dataset = dataset
         self.potential = func(potential, names, constants)
-        self.autocorr = self.potential if autocorr is None else func(autocorr, names, constants)
-        y = multimap([self.autocorr.lambdify()], dataset)
+        self.acfun = self.potential if acfun is None else func(acfun, names, constants)
+        y = multimap([self.acfun.lambdify()], dataset)
         ym = np.mean(y, axis=1)
         S1 = covariance(y, ym, 1).item(0)
         Sb = covariance(y, ym, b).item(0)
@@ -81,50 +78,66 @@ class sample:
             info("Variance via Overlapping Batch Means:", Sb)
             info("Effective sample size:", self.neff)
 
+    def subsample(self, integratedACF=True):
+        """
+        Performs inline subsampling based on the statistical inefficency `g`
+        of the specified function `acfun`. The jumps are not uniformly sized,
+        but vary around `g` so that the sample size decays by a factor of
+        approximately `1/g`.
 
-class pooledSample:
+        Parameters
+        ----------
+            integratedACF : bool, optional, default = True
+                If true, the integrated autocorrelation function method will
+                be used for computing the statistical inefficency. Otherwise,
+                the Overlapping Batch Mean (OBM) method will be used instead.
+
+        Returns
+        -------
+            sample
+                Although the subsampling is done in line, the new sample is
+                returned for chaining purposes.
+
+        """
+
+        n = len(self.dataset)
+        if mics.verbose:
+            info("\n=== Subsampling via %s ===" % "integrated ACF" if integratedACF else "OBM")
+            info("Original sample size:", n)
+        if integratedACF:
+            y = multimap([self.acfun.lambdify()], self.dataset)
+            g = timeseries.statisticalInefficiency(y[0])
+        else:
+            g = n/self.neff
+        new = timeseries.subsampleCorrelatedData(self.dataset.index, g)
+        self.dataset = self.dataset.reindex(new)
+        self.neff = len(new)
+        if mics.verbose:
+            info("Statistical inefficency:", g)
+            info("New sample size:", self.neff)
+        return self
+
+
+class pooledsample:
     """
     A pool of independently collected samples.
 
     """
 
-    # ======================================================================================
     def __init__(self, label=""):
         self.samples = list()
         self.label = str(label)
 
-    # ======================================================================================
-    def add(self, *args, **kwargs):
-        self.samples.append(sample(*args, **kwargs))
-
-    # ======================================================================================
-    def copy(self):
-        return deepcopy(self)
-
-    # ======================================================================================
-    def subsample(self, compute_inefficiency=True):
-        mics.verbose and info("Performing subsampling...")
-        for (i, sample) in enumerate(self.samples):
-            n = len(sample.dataset)
-            mics.verbose and info("Original sample size:", n)
-            old = sample.dataset.index
-            if compute_inefficiency:
-                y = multimap([sample.autocorr.lambdify()], sample.dataset)
-                g = timeseries.statisticalInefficiency(y[0])
-                mics.verbose and info("Statistical inefficency via integrated ACF:", g)
-            else:
-                g = n/sample.neff
-                mics.verbose and info("Statistical inefficency via Overlapping Batch Means:", g)
-            new = timeseries.subsampleCorrelatedData(old, g)
-            sample.dataset = sample.dataset.reindex(new)
-            sample.neff = len(new)
-            mics.verbose and info("New sample size:", sample.neff)
-        return self
-
-    # ======================================================================================
     def __getitem__(self, i):
         return self.samples[i]
 
-    # ======================================================================================
     def __len__(self):
         return len(self.samples)
+
+    def add(self, *args, **kwargs):
+        self.samples.append(sample(*args, **kwargs))
+
+    def subsample(self, integratedACF=True):
+        for sample in self.samples:
+            sample.subsample(integratedACF)
+        return self

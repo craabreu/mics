@@ -17,7 +17,7 @@ from mics.funcs import derivative
 from mics.funcs import func
 from mics.funcs import jacobian
 from mics.MICS import MICS
-from mics.samples import pooledSample
+from mics.samples import pooledsample
 from mics.utils import InputError
 from mics.utils import cases
 from mics.utils import info
@@ -54,7 +54,7 @@ class mixture:
             raise InputError("list of samples is empty")
         mics.verbose and info("Number of samples:", m)
 
-        if type(samples) is pooledSample:
+        if type(samples) is pooledsample:
             self.samples = samples.samples
             self.label = samples.label
         else:

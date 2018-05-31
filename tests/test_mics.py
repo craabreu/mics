@@ -1,3 +1,5 @@
+from copy import deepcopy
+
 import numpy as np
 import pandas as pd
 import pytest
@@ -14,7 +16,7 @@ m = 4
 beta = 1.6773985789
 data = ["tests/data/log_%d.dat" % (i + 1) for i in range(m)]
 
-samples = mics.pooledSample()
+samples = mics.pooledsample()
 for i in range(m):
     dataset = pd.read_csv(data[i], sep=" ")
     potential = "beta*E%d" % (i + 1)
@@ -22,7 +24,7 @@ for i in range(m):
     samples.add(dataset, potential, autocorr, beta=beta)
 
 
-def test_pooledSample():
+def test_pooledsample():
     neff = [100.829779921697, 76.82824014457174, 69.63811023389404, 55.179192164637165]
     for i in range(4):
         assert samples[i].neff == pytest.approx(neff[i])
@@ -30,7 +32,7 @@ def test_pooledSample():
 
 def test_mics_single_sample():
     dataset = pd.read_csv(data[0], sep=" ")
-    sample = mics.pooledSample()
+    sample = mics.pooledsample()
     sample.add(dataset, "beta*E1", "beta*(E2 - E1)", beta=beta)
     mixture = mics.mixture(sample, method=mics.MICS())
     assert mixture.Overlap[0][0] == pytest.approx(1.0)
@@ -38,7 +40,7 @@ def test_mics_single_sample():
 
 def test_mbar_single_sample():
     dataset = pd.read_csv(data[0], sep=" ")
-    sample = mics.pooledSample()
+    sample = mics.pooledsample()
     sample.add(dataset, "beta*E1", "beta*(E2 - E1)", beta=beta)
     mixture = mics.mixture(sample, mics.MBAR())
     assert mixture.Overlap[0][0] == pytest.approx(1.0)
@@ -72,7 +74,7 @@ print(fu)
 
 # MBAR
 
-mbar = mics.mixture(samples.copy().subsample(), mics.MBAR())
+mbar = mics.mixture(deepcopy(samples).subsample(), mics.MBAR())
 
 
 def test_mbar_free_energies():
