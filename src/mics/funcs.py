@@ -9,9 +9,9 @@
 
 import numpy as np
 import pandas as pd
+import sympy
 from sympy import Matrix
 from sympy import Symbol
-from sympy import diff
 from sympy.parsing.sympy_parser import parse_expr
 from sympy.parsing.sympy_tokenize import TokenError
 from sympy.utilities.lambdify import lambdify
@@ -98,10 +98,10 @@ def jacobian(functions, variables, constants):
 
 
 # ==========================================================================================
-def derivative(function, variable, symbols):
+def diff(function, variable, symbols):
     local_dict = dict((x, Symbol(x)) for x in symbols)
     f = parse_expr(function, local_dict)
-    return str(diff(f, Symbol(variable)))
+    return str(sympy.diff(f, Symbol(variable)))
 
 
 # ==========================================================================================

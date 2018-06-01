@@ -155,6 +155,6 @@ class sample:
         result = propertyDict(properties.keys(), ym, stdError(Theta))
         if combinations:
             delta = deltaMethod(combinations.values(), properties.keys(), constants)
-            h, dh = delta.evaluate(ym, Theta)
+            (h, dh) = delta.evaluate(ym, Theta)
             result.update(propertyDict(combinations.keys(), h, dh))
         return result.to_frame(index)

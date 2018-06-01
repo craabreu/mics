@@ -20,12 +20,17 @@ class InputError(Exception):
 
 
 # ==========================================================================================
+def errorTitle(name):
+    return "d"+name
+
+
+# ==========================================================================================
 class propertyDict(OrderedDict):
     def __init__(self, names, properties, uncertainties):
         super(propertyDict, self).__init__()
         for (name, x, dx) in zip(names, properties, uncertainties):
             self[name] = x
-            self["d"+name] = dx
+            self[errorTitle(name)] = dx
 
     def to_frame(self, index):
         return pd.DataFrame(data=self, index=[index])
@@ -38,6 +43,11 @@ def cases(frame):
     else:
         for (index, row) in frame.iterrows():
             yield index, row.to_dict()
+
+
+# ==========================================================================================
+def crypto(x):
+    return "__%s__" % x
 
 
 # ==========================================================================================

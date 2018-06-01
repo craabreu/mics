@@ -12,10 +12,12 @@ import pandas as pd
 
 import mics
 from mics.funcs import deltaMethod
-from mics.funcs import derivative
+from mics.funcs import diff
 from mics.funcs import func
 from mics.utils import InputError
 from mics.utils import cases
+from mics.utils import crypto
+from mics.utils import errorTitle
 from mics.utils import info
 from mics.utils import multimap
 from mics.utils import overlapSampling
@@ -114,6 +116,10 @@ class mixture:
                     reference=0,
                     **constants):
         """
+        Computes averages of specified properties at one or more states defined
+        by a given reduced `potential` function. Also, computes derivatives of
+        these averages with respect to
+
         Performs reweighting of the properties computed by `functions` from the
         mixture to the samples determined by the provided `potential` with all
         `parameter` values.
@@ -141,20 +147,21 @@ class mixture:
                 all specified conditions.
 
         """
-        freeEnergy = "f"
-        if freeEnergy in properties.keys():
-            raise InputError("Word % is reserved for free energies" % freeEnergy)
-        propnames = [freeEnergy] + list(properties.keys())
-        propfuncs = list(properties.values())
-        combs = combinations.values()
-        condframe = pd.DataFrame(data=conditions) if isinstance(conditions, dict) else conditions
-
         if mics.verbose:
             info("\n=== Performing reweighting with %s ===" % self.method.__class__.__name__)
             info("Reduced potential:", potential)
             constants and info("Provided constants: ", constants)
 
+        freeEnergy = "f"
+        if freeEnergy in properties.keys():
+            raise InputError("Word % is reserved for free energies" % freeEnergy)
+        condframe = pd.DataFrame(data=conditions) if isinstance(conditions, dict) else conditions
+        propfuncs = list(properties.values())
+
         if not derivatives:
+            propnames = [freeEnergy] + list(properties.keys())
+            combs = combinations.values()
+
             gProps = self.__compute__(propfuncs, constants)
             if combinations:
                 gDelta = deltaMethod(combs, propnames, constants)
@@ -163,44 +170,33 @@ class mixture:
             for (index, condition) in cases(condframe):
                 mics.verbose and condition and info("Condition[%s]" % index, condition)
                 consts = dict(condition, **constants)
-
                 u = self.__compute__(potential, consts)
                 y = gProps if gProps else self.__compute__(propfuncs, consts)
-                yu, Theta = self.method.__reweight__(self, u, y, reference)
+                (yu, Theta) = self.method.__reweight__(self, u, y, reference)
                 result = propertyDict(propnames, yu, stdError(Theta))
-
                 if combinations:
                     delta = gDelta if gDelta.valid else deltaMethod(combs, propnames, consts)
-                    h, dh = delta.evaluate(yu, Theta)
+                    (h, dh) = delta.evaluate(yu, Theta)
                     result.update(propertyDict(combinations.keys(), h, dh))
-
                 results.append(result.to_frame(index))
 
             return condframe.join(pd.concat(results))
 
         else:
-
-            def dec(x):
-                return "__%s__" % x
-
-            parameters = list(condframe.columns) + list(constants.keys())
-            zyx = [(key, value[0], value[1]) for key, value in derivatives.items()]
-
-            props = {}
-            combs = {}
-            for x in set(x for z, y, x in zyx):
-                props[dec(x)] = derivative(potential, x, parameters)
-
-            for z, y, x in zyx:
-                if y == 'f':
-                    combs[z] = dec(x)
+            symbols = list(condframe.columns) + list(constants.keys())
+            parameters = set(x for (y, x) in derivatives.values())
+            props = dict()
+            for x in parameters:
+                props[crypto(x)] = diff(potential, x, symbols)
+            combs = dict()
+            for (z, (y, x)) in derivatives.items():
+                if y == freeEnergy:
+                    combs[z] = crypto(x)
                 else:
-                    dydx = derivative(properties[y], x, parameters)
-                    props[dec(z)] = "%s - (%s)*(%s)" % (dydx, props[dec(x)], properties[y])
-                    combs[z] = "%s + (%s)*(%s)" % (dec(z), dec(x), y)
-
-            unwanted = sum([[x, "d"+x] for x in props.keys()], [])
-
+                    dydx = diff(properties[y], x, symbols)
+                    props[crypto(z)] = "%s - (%s)*(%s)" % (dydx, props[crypto(x)], properties[y])
+                    combs[z] = "%s + (%s)*(%s)" % (crypto(z), crypto(x), y)
+            unwanted = sum([[x, errorTitle(x)] for x in props.keys()], [])
             return self.reweighting(potential, dict(properties, **props), {},
                                     dict(combs, **combinations), condframe, reference,
                                     **constants).drop(unwanted, axis=1)
@@ -211,13 +207,13 @@ class mixture:
             property,
             bins=10,
             interval=None,
-            **kwargs):
+            **constants):
 
-        mics.verbose and info("PMF requested - %s case:" % self.method, self.title)
-        mics.verbose and info("Reduced potential:", potential)
-        u = self.compute(potential, kwargs)
-
-        z = self.compute(property, kwargs)
+        if mics.verbose:
+            info("\n=== Computing PMF with %s ===" % self.method.__class__.__name__)
+            info("Reduced potential:", potential)
+        u = self.__compute__(potential, constants)
+        z = self.__compute__(property, constants)
         if interval:
             (zmin, zmax) = interval
         else:
@@ -237,10 +233,10 @@ class mixture:
                 print([zc, -np.log(yu[1]), dyu/yu[1]])
                 results.append([zc, -np.log(yu[1]), dyu/yu[1]])
 
-        return pd.DataFrame(results, columns=[property, "pmf", "d_pmf"])
+        return pd.DataFrame(results, columns=[property, "pmf", errorTitle("pmf")])
 
     # ======================================================================================
-    def histograms(self, property="u0", bins=100, **kwargs):
+    def histograms(self, property="u0", bins=100, **constants):
         if property == "u0":
             y = self.u0
         elif property == "state":
@@ -250,7 +246,7 @@ class mixture:
         elif property == "potential":
             y = [self.u[i][i, :] for i in range(self.m)]
         else:
-            y = self.compute(property, kwargs)
+            y = self.compute(property, constants)
         ymin = min([np.amin(x) for x in y])
         ymax = max([np.amax(x) for x in y])
         delta = (ymax - ymin)/bins
