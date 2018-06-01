@@ -46,6 +46,7 @@ def test_mbar_single_sample():
 
 # mixture = mics.mixture(samples)
 mixture = samples.mixture()
+print(mixture.free_energies())
 
 
 def test_mics_free_energies():
@@ -74,6 +75,7 @@ print(fu)
 # MBAR
 
 mbar = deepcopy(samples).subsample().mixture(mics.MBAR())
+print(mbar.free_energies())
 
 
 def test_mbar_free_energies():

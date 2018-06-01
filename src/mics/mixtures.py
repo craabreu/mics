@@ -16,6 +16,7 @@ import mics
 from mics.funcs import derivative
 from mics.funcs import func
 from mics.funcs import jacobian
+from mics.funcs import qualifiers
 from mics.utils import InputError
 from mics.utils import cases
 from mics.utils import info
@@ -51,24 +52,24 @@ class mixture:
         if m == 0:
             raise InputError("list of samples is empty")
 
+        self.n = np.array([s.dataset.shape[0] for s in samples])
+        self.neff = np.array([s.neff for s in samples])
         names = self.names = list(samples[0].dataset.columns)
+        if mics.verbose:
+            info("Sample sizes:", self.n)
+            info("Effective sample sizes:", self.neff)
+            info("Properties:", ", ".join(names))
+
         if any(list(s.dataset.columns) != names for s in samples):
             raise InputError("provided samples have distinct properties")
-        mics.verbose and info("Properties:", ", ".join(names))
 
-        self.n = np.array([s.dataset.shape[0] for s in samples])
-        mics.verbose and info("Sample sizes:", str(self.n))
+        functions = [s.potential for s in samples]
+        self.frame = pd.DataFrame(index=np.arange(m) + 1, data=qualifiers(functions))
 
-        potentials = [s.potential.lambdify() for s in samples]
+        potentials = [f.lambdify() for f in functions]
         self.u = [multimap(potentials, s.dataset) for s in samples]
-
         self.f = overlapSampling(self.u)
         mics.verbose and info("Initial free-energy guess:", self.f)
-
-        self.neff = np.array([s.neff for s in samples])
-
-        self.frame = pd.DataFrame(index=np.arange(m) + 1)
-        self.states = ["state %d" % (i+1) for i in range(m)]
 
         self.method.__initialize__(self)
 
@@ -97,6 +98,7 @@ class mixture:
             pandas.DataFrame
                 A data frame containing the free-energy differences and their
                 computed standard errors for all sampled states.
+
         """
         frame = self.frame.copy()
         frame["f"] = self.f - self.f[reference]
@@ -274,6 +276,6 @@ class mixture:
         delta = (ymax - ymin)/bins
         center = [ymin + delta*(i + 0.5) for i in range(bins)]
         frame = pd.DataFrame({property: center})
-        for (i, s) in enumerate(self.states):
-            frame[s] = np.histogram(y[i], bins, (ymin, ymax))[0]
+        for i in range(self.m):
+            frame["state %s" % (i+1)] = np.histogram(y[i], bins, (ymin, ymax)).item(0)
         return frame

@@ -5,7 +5,6 @@
 
 .. moduleauthor:: Charlles R. A. Abreu <abreu@eq.ufrj.br>
 
-
 """
 
 import numpy as np
@@ -86,3 +85,19 @@ def derivative(function, variable, symbols):
     local_dict = dict((x, Symbol(x)) for x in symbols)
     f = parse_expr(function, local_dict)
     return str(diff(f, Symbol(variable)))
+
+
+# ==========================================================================================
+def qualifiers(functions):
+    n = len(functions)
+    ubiquitous = set(functions[0].constants.keys())
+    for f in functions[1:n]:
+        ubiquitous &= set(f.constants.keys())
+    table = {}
+    for key in ubiquitous:
+        values = [f.constants[key] for f in functions]
+        if (len(set(values)) == n):
+            table[key] = values
+    if not table:
+        table['potential'] = [f.expression for f in functions]
+    return table
