@@ -16,8 +16,6 @@ import mics
 from mics.funcs import derivative
 from mics.funcs import func
 from mics.funcs import jacobian
-from mics.MICS import MICS
-from mics.samples import pooledsample
 from mics.utils import InputError
 from mics.utils import cases
 from mics.utils import info
@@ -27,39 +25,31 @@ from mics.utils import stdError
 
 
 class mixture:
-    """A mixture of independently collected samples (MICS)
+    """
+    A mixture of independently collected samples (MICS).
 
-        Args:
-            samples (list or tuple):
-                a list of samples.
-            title (str, optional):
-                a title.
-            verbose (bool, optional):
-                a verbosity tag.
-            tol (float, optional):
-                a tolerance.
+    Parameters
+    ----------
+        samples : list(mics.sample)
+            A list of samples.
+        method : mics.method, optional, default = mics.MICS()
+            A method for mixture-model analysis.
 
     """
 
-    def __init__(self, samples, method=MICS(), title="Untitled", tol=1.0E-12):
+    def __init__(self, samples, method=mics.MICS()):
 
-        np.set_printoptions(precision=4, threshold=15, edgeitems=4, suppress=True)
-
-        self.title = title
+        self.samples = samples
         self.method = method
-        mics.verbose and info("Setting up %s case:" % self.method.__class__.__name__, title)
-
         m = self.m = len(samples)
+        if mics.verbose:
+            # np.set_printoptions(precision=4, threshold=15, edgeitems=4, suppress=True)
+            info("\n=== Setting up mixture ===")
+            info("Analysis method: ", self.method.__class__.__name__)
+            info("Number of samples:", m)
+
         if m == 0:
             raise InputError("list of samples is empty")
-        mics.verbose and info("Number of samples:", m)
-
-        if type(samples) is pooledsample:
-            self.samples = samples.samples
-            self.label = samples.label
-        else:
-            self.samples = samples
-            self.label = ""
 
         names = self.names = list(samples[0].dataset.columns)
         if any(list(s.dataset.columns) != names for s in samples):
@@ -78,13 +68,9 @@ class mixture:
         self.neff = np.array([s.neff for s in samples])
 
         self.frame = pd.DataFrame(index=np.arange(m) + 1)
-        if self.label:
-            self.states = ["%s = %s" % (self.label, s.label) for s in samples]
-            self.frame[self.label] = [s.label for s in samples]
-        else:
-            self.states = ["state %d" % (i+1) for i in range(m)]
+        self.states = ["state %d" % (i+1) for i in range(m)]
 
-        self.method.__initialize__(self, tol)
+        self.method.__initialize__(self)
 
     # ======================================================================================
     def __compute__(self, functions, constants):
@@ -97,9 +83,20 @@ class mixture:
     # ======================================================================================
     def free_energies(self, reference=0):
         """
-        Returns a data frame containing the relative free energies of the datasetd samples
-        of a `mixture`, as well as their standard errors.
+        Computes the free energies of all sampled states relative to a given
+        reference state, as well as their standard errors.
 
+        Parameters
+        ----------
+            reference : int, optional, default = 0
+                Specifies which sampled state will be considered as a reference
+                for computing free-energy differences.
+
+        Returns
+        -------
+            pandas.DataFrame
+                A data frame containing the free-energy differences and their
+                computed standard errors for all sampled states.
         """
         frame = self.frame.copy()
         frame["f"] = self.f - self.f[reference]
@@ -117,17 +114,31 @@ class mixture:
                     reference=0,
                     **kwargs):
         """
-        Performs reweighting of the properties computed by `functions` from the mixture to
-        the samples determined by the provided `potential` with all `parameter` values.
+        Performs reweighting of the properties computed by `functions` from the
+        mixture to the samples determined by the provided `potential` with all
+        `parameter` values.
 
-        Args:
-            potential (string):
-            properties (dict of strings):
-            combinations (dict of strings):
-            derivatives (dict of tuples):
-            conditions (dict or DataFrame):
-            verbose (boolean):
-            **kwargs:
+        Parameters
+        ----------
+            potential : string
+
+            properties : dict(string: string), optional, default = {}
+
+            combinations : dict(string: string), optional, default = {}
+
+            derivatives : dict(string: string), optional, default = {}
+
+            conditions : dict(string: string), optional, default = {}
+
+            reference : int, optional, default = 0
+
+            **kwargs : keyword arguments
+
+        Returns
+        -------
+            pandas.DataFrame
+                A data frame containing the computed quantities at all
+                all specified conditions.
 
         """
         # TODO: look for duplicated names or reserved keyword 'f' in properties
@@ -141,7 +152,7 @@ class mixture:
             condframe = conditions
 
         if mics.verbose:
-            info("Reweighting requested in %s case:" % self.method.__class__.__name__, self.title)
+            info("\n=== Performing reweighting with %s ===" % self.method.__class__.__name__)
             info("Reduced potential:", potential)
             kwargs and info("Provided constants: ", kwargs)
 

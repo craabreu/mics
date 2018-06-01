@@ -5,7 +5,6 @@
 
 .. moduleauthor:: Charlles R. A. Abreu <abreu@eq.ufrj.br>
 
-
 """
 
 import numpy as np
@@ -18,30 +17,28 @@ from mics.utils import logsumexp
 
 
 class MBAR:
-    """A class for Multistate Bennett Acceptance Ratio amples (MICS)
+    """
+    Machinery for mixture-model analysis using the MBAR method.
 
-        Args:
-            samples (list or tuple):
-                a list of samples.
-            title (str, optional):
-                a title.
-            verbose (bool, optional):
-                a verbosity tag.
-            tol (float, optional):
-                a tolerance.
+    Parameters
+    ----------
+        tol : real, optional, default = 1.0e-12
+            A tolerance for determining convergence of the self-consistent
+            solution of the MBAR equations.
 
     """
 
     # ======================================================================================
-    def __init__(mixture):
-        pass
+    def __init__(self, tol=1e-12):
+        self.tol = tol
 
     # ======================================================================================
-    def __initialize__(self, mixture, tol):
+    def __initialize__(self, mixture):
         m = mixture.m
         n = mixture.n
 
-        mb = self.MBAR = mbar.MBAR(np.hstack(mixture.u), n, relative_tolerance=tol,
+        mb = self.MBAR = mbar.MBAR(np.hstack(mixture.u), n,
+                                   relative_tolerance=self.tol,
                                    initial_f_k=mixture.f)
 
         mixture.f = mb.f_k
@@ -60,7 +57,7 @@ class MBAR:
 
     # ======================================================================================
     def __reweight__(self, mixture, u, y, ref=0):
-        u_ln = np.stack([np.hstack(u).flatten(),                 # new state = 0
+        u_ln = np.stack([np.hstack(u).flatten(),                    # new state = 0
                          np.hstack(x[ref, :] for x in mixture.u)])  # reference state = 1
 
         A_n = np.hstack(y)  # properties

@@ -5,7 +5,6 @@
 
 .. moduleauthor:: Charlles R. A. Abreu <abreu@eq.ufrj.br>
 
-
 """
 
 import numpy as np
@@ -20,26 +19,27 @@ from mics.utils import safe_exp
 
 
 class MICS:
-    """A mixture of independently collected samples (MICS)
+    """
+    Machinery for mixture-model analysis using the MICS method.
 
-        Args:
-            samples (list or tuple):
-                a list of samples.
-            title (str, optional):
-                a title.
-            verbose (bool, optional):
-                a verbosity tag.
-            tol (float, optional):
-                a tolerance.
+    Parameters
+    ----------
+        composition : list(Number), optional, default = None
+            A predefined composition for the mixture. If this is None, then the
+            prior probability of each state will be considered as proportional
+            to the effective size of the corresponding sample.
+        tol : real, optional, default = 1.0e-12
+            A tolerance for determining convergence of the self-consistent
+            solution of the MICS equations.
 
     """
 
-    # ======================================================================================
-    def __init__(mixture, composition=None):
-        mixture.composition = composition
+    def __init__(self, composition=None, tol=1.0e-12):
+        self.composition = composition
+        self.tol = tol
 
     # ======================================================================================
-    def __initialize__(self, mixture, tol):
+    def __initialize__(self, mixture):
         m = mixture.m
         neff = mixture.neff
 
@@ -50,13 +50,13 @@ class MICS:
 
         mics.verbose and info("Solving self-consistent equations...")
         iter = 1
-        df = self._newton_raphson_iteration(mixture)
+        df = self.__newton_raphson_iteration__(mixture)
         if m > 1:
             mics.verbose and info("Maximum deviation at iteration %d:" % iter, max(abs(df)))
-            while any(abs(df) > tol):
+            while any(abs(df) > self.tol):
                 iter += 1
                 mixture.f[1:m] += df
-                df = self._newton_raphson_iteration(mixture)
+                df = self.__newton_raphson_iteration__(mixture)
                 mics.verbose and info("Maximum deviation at iteration %d:" % iter, max(abs(df)))
         mics.verbose and info("Free energies after convergence:", mixture.f)
 
@@ -68,7 +68,7 @@ class MICS:
         mics.verbose and info("Overlap matrix:", mixture.Overlap)
 
     # ======================================================================================
-    def _newton_raphson_iteration(self, mixture):
+    def __newton_raphson_iteration__(self, mixture):
         m = mixture.m
         pi = self.pi
         n = mixture.n
