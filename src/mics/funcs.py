@@ -17,6 +17,7 @@ from sympy.parsing.sympy_tokenize import TokenError
 from sympy.utilities.lambdify import lambdify
 
 from mics.utils import InputError
+from mics.utils import stdError
 
 
 class func:
@@ -54,6 +55,22 @@ class func:
             def f(x):
                 return pd.Series(np.full(x.shape[0], value))
             return f
+
+
+# ==========================================================================================
+class deltaMethod:
+    def __init__(self, functions, variables, constants):
+        try:
+            self.f, self.Jac = jacobian(functions, variables, constants)
+            self.valid = True
+        except InputError:
+            self.valid = False
+
+    def evaluate(self, x, covariances):
+        if not self.valid:
+            raise InputError("Trying to evaluate an invalid delta method object")
+        J = self.Jac(x)
+        return self.f(x), stdError(np.linalg.multi_dot([J, covariances, J.T]))
 
 
 # ==========================================================================================

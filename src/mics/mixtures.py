@@ -7,22 +7,19 @@
 
 """
 
-from collections import OrderedDict
-
 import numpy as np
 import pandas as pd
-from numpy.linalg import multi_dot
 
 import mics
+from mics.funcs import deltaMethod
 from mics.funcs import derivative
 from mics.funcs import func
-from mics.funcs import jacobian
 from mics.utils import InputError
 from mics.utils import cases
-from mics.utils import errorTitle
 from mics.utils import info
 from mics.utils import multimap
 from mics.utils import overlapSampling
+from mics.utils import propertyDict
 from mics.utils import stdError
 
 
@@ -53,19 +50,19 @@ class mixture:
         if m == 0:
             raise InputError("list of samples is empty")
 
-        self.n = np.array([s.dataset.shape[0] for s in samples])
-        self.neff = np.array([s.neff for s in samples])
+        self.n = np.array([len(sample.dataset) for sample in samples])
+        self.neff = np.array([sample.neff for sample in samples])
         names = self.names = list(samples[0].dataset.columns)
         if mics.verbose:
             info("Sample sizes:", self.n)
             info("Effective sample sizes:", self.neff)
             info("Properties:", ", ".join(names))
 
-        if any(list(s.dataset.columns) != names for s in samples):
+        if any(list(sample.dataset.columns) != names for sample in samples):
             raise InputError("provided samples have distinct properties")
 
-        potentials = [s.potential.lambdify() for s in samples]
-        self.u = [multimap(potentials, s.dataset) for s in samples]
+        potentials = [sample.potential.lambdify() for sample in samples]
+        self.u = [multimap(potentials, sample.dataset) for sample in samples]
         self.f = overlapSampling(self.u)
         mics.verbose and info("Initial free-energy guess:", self.f)
 
@@ -73,11 +70,14 @@ class mixture:
 
     # ======================================================================================
     def __compute__(self, functions, constants):
-        if isinstance(functions, str):
-            funcs = [func(functions, self.names, constants).lambdify()]
-        else:
-            funcs = [func(f, self.names, constants).lambdify() for f in functions]
-        return [multimap(funcs, s.dataset) for s in self.samples]
+        try:
+            if isinstance(functions, str):
+                funcs = [func(functions, self.names, constants).lambdify()]
+            else:
+                funcs = [func(f, self.names, constants).lambdify() for f in functions]
+            return [multimap(funcs, sample.dataset) for sample in self.samples]
+        except (InputError, KeyError):
+            return None
 
     # ======================================================================================
     def free_energies(self, reference=0):
@@ -141,63 +141,40 @@ class mixture:
                 all specified conditions.
 
         """
-        # TODO: look for duplicated names or reserved keyword 'f' in properties
-        # TODO: look for duplicated names in properties, derivatives, and combinations
-        # TODO: allow limited recursion in combinations
-
         freeEnergy = "f"
         if freeEnergy in properties.keys():
             raise InputError("Word % is reserved for free energies" % freeEnergy)
         propnames = [freeEnergy] + list(properties.keys())
+        propfuncs = list(properties.values())
+        combs = combinations.values()
         condframe = pd.DataFrame(data=conditions) if isinstance(conditions, dict) else conditions
+
         if mics.verbose:
             info("\n=== Performing reweighting with %s ===" % self.method.__class__.__name__)
             info("Reduced potential:", potential)
-            info("Computed properties:", ", ".join(propnames))
-            info("Provided constants: ", constants)
+            constants and info("Provided constants: ", constants)
 
         if not derivatives:
-
-            try:
-                y = self.__compute__(properties.values(), constants)
-                properties_needed = False
-            except (InputError, KeyError):
-                properties_needed = True
-
-            if (combinations):
-                try:
-                    f, Jac = jacobian(combinations.values(), propnames, constants)
-                    jacobian_needed = False
-                except InputError:
-                    jacobian_needed = True
+            gProps = self.__compute__(propfuncs, constants)
+            if combinations:
+                gDelta = deltaMethod(combs, propnames, constants)
 
             results = list()
             for (index, condition) in cases(condframe):
                 mics.verbose and condition and info("Condition[%s]" % index, condition)
-
                 consts = dict(condition, **constants)
-                u = self.__compute__(potential, consts)
-                if properties_needed:
-                    y = self.__compute__(properties.values(), consts)
-                yu, Theta = self.method.__reweight__(self, u, y, reference)
-                dyu = stdError(Theta)
 
-                result = OrderedDict()
-                for (name, x, dx) in zip(propnames, yu, dyu):
-                    result[name] = x
-                    result[errorTitle(name)] = dx
+                u = self.__compute__(potential, consts)
+                y = gProps if gProps else self.__compute__(propfuncs, consts)
+                yu, Theta = self.method.__reweight__(self, u, y, reference)
+                result = propertyDict(propnames, yu, stdError(Theta))
 
                 if combinations:
-                    if jacobian_needed:
-                        f, Jac = jacobian(combinations.values(), propnames, consts)
-                    h = f(yu)
-                    J = Jac(yu)
-                    dh = stdError(multi_dot([J, Theta, J.T]))
-                    for (name, x, dx) in zip(combinations.keys(), h, dh):
-                        result[name] = x
-                        result[errorTitle(name)] = dx
+                    delta = gDelta if gDelta.valid else deltaMethod(combs, propnames, consts)
+                    h, dh = delta.evaluate(yu, Theta)
+                    result.update(propertyDict(combinations.keys(), h, dh))
 
-                results.append(pd.DataFrame(data=result, index=[index]))
+                results.append(result.to_frame(index))
 
             return condframe.join(pd.concat(results))
 

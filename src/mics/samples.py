@@ -10,20 +10,16 @@
 # TODO: save potential and autocor as strings rather than lambda functions, so that
 #       one can use pickle to save a sample or a mixture object.
 
-from collections import OrderedDict
-
 import numpy as np
-import pandas as pd
-from numpy.linalg import multi_dot
 from pymbar import timeseries
 
 import mics
+from mics.funcs import deltaMethod
 from mics.funcs import func
-from mics.funcs import jacobian
 from mics.utils import covariance
-from mics.utils import errorTitle
 from mics.utils import info
 from mics.utils import multimap
+from mics.utils import propertyDict
 from mics.utils import stdError
 
 
@@ -156,17 +152,9 @@ class sample:
         y = multimap(functions, self.dataset)
         ym = np.mean(y, axis=1)
         Theta = covariance(y, ym, self.b)
-        dym = stdError(Theta)
-        result = OrderedDict()
-        for (name, x, dx) in zip(properties.keys(), ym, dym):
-            result[name] = x
-            result[errorTitle(name)] = dx
+        result = propertyDict(properties.keys(), ym, stdError(Theta))
         if combinations:
-            f, Jac = jacobian(combinations.values(), properties.keys(), constants)
-            h = f(ym)
-            J = Jac(ym)
-            dh = stdError(multi_dot([J, Theta, J.T]))
-            for (name, x, dx) in zip(combinations.keys(), h, dh):
-                result[name] = x
-                result[errorTitle(name)] = dx
-        return pd.DataFrame(result, index=[index])
+            delta = deltaMethod(combinations.values(), properties.keys(), constants)
+            h, dh = delta.evaluate(ym, Theta)
+            result.update(propertyDict(combinations.keys(), h, dh))
+        return result.to_frame(index)
