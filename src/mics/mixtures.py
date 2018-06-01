@@ -5,7 +5,6 @@
 
 .. moduleauthor:: Charlles R. A. Abreu <abreu@eq.ufrj.br>
 
-
 """
 
 import numpy as np
