@@ -23,6 +23,8 @@ for i in range(m):
     autocorr = "beta*(E%d - E%d)" % (min(i+2, m), max(i, 1))
     samples += mics.sample(dataset, potential, autocorr, beta=beta)
 
+print(samples.averaging(dict(T='Temp', K='KinEng'), combinations=dict(R='K/T')))
+
 
 def test_pooledsample():
     neff = [100.829779921697, 76.82824014457174, 69.63811023389404, 55.179192164637165]
@@ -51,8 +53,8 @@ print(mixture.free_energies())
 
 def test_mics_free_energies():
     fe = mixture.free_energies()
-    assert fe["f"][m] == pytest.approx(3.6251084520815593)
-    assert fe["df"][m] == pytest.approx(0.16158119695537948)
+    assert fe["f"][m-1] == pytest.approx(3.6251084520815593)
+    assert fe["df"][m-1] == pytest.approx(0.16158119695537948)
 
 
 parameters = pd.DataFrame({"T": np.linspace(0.8, 1.2, 5)/(1.987E-3*beta)})
@@ -80,8 +82,8 @@ print(mbar.free_energies())
 
 def test_mbar_free_energies():
     fe = mbar.free_energies()
-    assert fe["f"][m] == pytest.approx(3.657670266845165)
-    assert fe["df"][m] == pytest.approx(0.1919766789868509)
+    assert fe["f"][m-1] == pytest.approx(3.657670266845165)
+    assert fe["df"][m-1] == pytest.approx(0.1919766789868509)
 
 
 props = mbar.reweighting(potential="beta*E4",

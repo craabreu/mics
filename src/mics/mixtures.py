@@ -15,7 +15,6 @@ import mics
 from mics.funcs import derivative
 from mics.funcs import func
 from mics.funcs import jacobian
-from mics.funcs import qualifiers
 from mics.utils import InputError
 from mics.utils import cases
 from mics.utils import info
@@ -62,10 +61,7 @@ class mixture:
         if any(list(s.dataset.columns) != names for s in samples):
             raise InputError("provided samples have distinct properties")
 
-        functions = [s.potential for s in samples]
-        self.frame = pd.DataFrame(index=np.arange(m) + 1, data=qualifiers(functions))
-
-        potentials = [f.lambdify() for f in functions]
+        potentials = [s.potential.lambdify() for s in samples]
         self.u = [multimap(potentials, s.dataset) for s in samples]
         self.f = overlapSampling(self.u)
         mics.verbose and info("Initial free-energy guess:", self.f)
@@ -99,7 +95,7 @@ class mixture:
                 computed standard errors for all sampled states.
 
         """
-        frame = self.frame.copy()
+        frame = self.samples.__qualifiers__()
         frame["f"] = self.f - self.f[reference]
         T = self.Theta
         frame["df"] = np.sqrt(np.diag(T) - 2*T[:, reference] + T[reference, reference])
@@ -113,7 +109,7 @@ class mixture:
                     combinations={},
                     conditions={},
                     reference=0,
-                    **kwargs):
+                    **constants):
         """
         Performs reweighting of the properties computed by `functions` from the
         mixture to the samples determined by the provided `potential` with all
@@ -133,7 +129,7 @@ class mixture:
 
             reference : int, optional, default = 0
 
-            **kwargs : keyword arguments
+            **constants : keyword arguments
 
         Returns
         -------
@@ -155,32 +151,32 @@ class mixture:
         if mics.verbose:
             info("\n=== Performing reweighting with %s ===" % self.method.__class__.__name__)
             info("Reduced potential:", potential)
-            kwargs and info("Provided constants: ", kwargs)
+            constants and info("Provided constants: ", constants)
 
         if not derivatives:
 
             try:
-                y = self.__compute__(properties.values(), kwargs)
+                y = self.__compute__(properties.values(), constants)
                 properties_needed = False
             except (InputError, KeyError):
                 properties_needed = True
 
             if (combinations):
                 try:
-                    func, Jac = jacobian(combinations.values(), names, kwargs)
+                    func, Jac = jacobian(combinations.values(), names, constants)
                     jacobian_needed = False
                 except InputError:
                     jacobian_needed = True
 
             results = list()
-            for constants in cases(condframe, kwargs, mics.verbose):
+            for constants in cases(condframe, constants, mics.verbose):
                 u = self.__compute__(potential, constants)
                 if properties_needed:
                     y = self.__compute__(properties.values(), constants)
                 g, Theta = self.method.__reweight__(self, u, y, reference)
                 dg = stdError(Theta)
 
-                if (combinations):
+                if combinations:
                     if jacobian_needed:
                         func, Jac = jacobian(combinations.values(), names, constants)
                     h = func(g).flatten()
@@ -202,7 +198,7 @@ class mixture:
             def dec(x):
                 return "__%s__" % x
 
-            parameters = list(condframe.columns) + list(kwargs.keys())
+            parameters = list(condframe.columns) + list(constants.keys())
             zyx = [(key, value[0], value[1]) for key, value in derivatives.items()]
 
             props = {}
@@ -222,7 +218,7 @@ class mixture:
 
             return self.reweighting(potential, dict(properties, **props), {},
                                     dict(combs, **combinations), condframe, reference,
-                                    **kwargs).drop(unwanted, axis=1)
+                                    **constants).drop(unwanted, axis=1)
 
     # ======================================================================================
     def pmf(self,

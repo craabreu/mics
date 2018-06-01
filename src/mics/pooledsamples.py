@@ -7,7 +7,11 @@
 
 """
 
+import numpy as np
+import pandas as pd
+
 import mics
+from mics.funcs import qualifiers
 
 
 class pooledsample(list):
@@ -23,6 +27,42 @@ class pooledsample(list):
         else:
             super(pooledsample, self).__iadd__(item)
         return self
+
+    def __qualifiers__(self):
+        functions = [sample.potential for sample in self]
+        return pd.DataFrame(index=np.arange(len(self)), data=qualifiers(functions))
+
+    def averaging(self,
+                  properties,
+                  combinations={},
+                  **constants):
+        """
+        Performs averaging of specified properties and uncertainty analysis
+        via Overlapping Batch Means. Combinations of these averages can also
+        be computed, with uncertainty propagation being automatically handled.
+
+        Parameters
+        ----------
+            properties : dict(string: string)
+
+            combinations : dict(string: string), optional, default = {}
+
+            **constants : keyword arguments
+
+        Returns
+        -------
+            pandas.DataFrame
+                A data frame containing the computed averages and combinations,
+                as well as their computed standard errors.
+
+        """
+        results = list()
+        for (index, sample) in enumerate(self):
+            results.append(sample.averaging(properties, combinations, index, **constants))
+        return self.__qualifiers__().join(pd.concat(results))
+
+    def mixture(self, method=mics.MICS()):
+        return mics.mixture(self, method)
 
     def subsample(self, integratedACF=True):
         """
@@ -45,6 +85,3 @@ class pooledsample(list):
         for sample in self:
             sample.subsample(integratedACF)
         return self
-
-    def mixture(self, method=mics.MICS()):
-        return mics.mixture(self, method)

@@ -10,14 +10,20 @@
 # TODO: save potential and autocor as strings rather than lambda functions, so that
 #       one can use pickle to save a sample or a mixture object.
 
+from collections import OrderedDict
+
 import numpy as np
+import pandas as pd
+from numpy.linalg import multi_dot
 from pymbar import timeseries
 
 import mics
 from mics.funcs import func
+from mics.funcs import jacobian
 from mics.utils import covariance
 from mics.utils import info
 from mics.utils import multimap
+from mics.utils import stdError
 
 
 class sample:
@@ -49,7 +55,7 @@ class sample:
     """
 
     def __init__(self, dataset, potential, acfun=None, batchsize=None, **constants):
-        names = list(dataset.columns)
+        names = dataset.columns.tolist()
         n = len(dataset)
         b = self.b = batchsize if batchsize else int(np.sqrt(n))
 
@@ -116,3 +122,50 @@ class sample:
             info("Statistical inefficency:", g)
             info("New sample size:", self.neff)
         return self
+
+    def averaging(self,
+                  properties,
+                  combinations={},
+                  index=0,
+                  **constants):
+        """
+        Performs averaging of specified properties and uncertainty analysis
+        via Overlapping Batch Means. Combinations of these averages can also
+        be computed, with uncertainty propagation being automatically handled.
+
+        Parameters
+        ----------
+            properties : dict(string: string)
+
+            combinations : dict(string: string), optional, default = {}
+
+            index : int, optional, default = 0
+                An index for the sigle-row data frame to be returned.
+            **constants : keyword arguments
+
+        Returns
+        -------
+            pandas.DataFrame
+                A data frame containing the computed averages and combinations,
+                as well as their computed standard errors.
+
+        """
+        variables = self.dataset.columns.tolist()
+        functions = [func(f, variables, constants).lambdify() for f in properties.values()]
+        y = multimap(functions, self.dataset)
+        ym = np.mean(y, axis=1)
+        Theta = covariance(y, ym, self.b)
+        dym = stdError(Theta)
+        result = OrderedDict()
+        for (name, x, dx) in zip(properties.keys(), ym, dym):
+            result[name] = x
+            result['d%s' % name] = dx
+        if combinations:
+            f, Jac = jacobian(combinations.values(), properties.keys(), constants)
+            h = f(ym)
+            J = Jac(ym)
+            dh = stdError(multi_dot([J, Theta, J.T]))
+            for (name, x, dx) in zip(combinations.keys(), h, dh):
+                result[name] = x
+                result['d%s' % name] = dx
+        return pd.DataFrame(result, index=[index])
