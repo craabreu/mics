@@ -17,15 +17,17 @@ class InputError(Exception):
 
 
 # ==========================================================================================
-def cases(conditions, constants, verbose):
-    if conditions.empty:
-        yield constants
+def errorTitle(name):
+    return "d" + name
+
+
+# ==========================================================================================
+def cases(frame):
+    if frame.empty:
+        yield 0, dict()
     else:
-        for (j, row) in conditions.iterrows():
-            condition = row.to_dict()
-            verbose and info("Condition[%d]:" % j, condition)
-            condition.update(constants)
-            yield condition
+        for (index, row) in frame.iterrows():
+            yield index, row.to_dict()
 
 
 # ==========================================================================================

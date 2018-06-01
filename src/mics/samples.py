@@ -21,6 +21,7 @@ import mics
 from mics.funcs import func
 from mics.funcs import jacobian
 from mics.utils import covariance
+from mics.utils import errorTitle
 from mics.utils import info
 from mics.utils import multimap
 from mics.utils import stdError
@@ -159,7 +160,7 @@ class sample:
         result = OrderedDict()
         for (name, x, dx) in zip(properties.keys(), ym, dym):
             result[name] = x
-            result['d%s' % name] = dx
+            result[errorTitle(name)] = dx
         if combinations:
             f, Jac = jacobian(combinations.values(), properties.keys(), constants)
             h = f(ym)
@@ -167,5 +168,5 @@ class sample:
             dh = stdError(multi_dot([J, Theta, J.T]))
             for (name, x, dx) in zip(combinations.keys(), h, dh):
                 result[name] = x
-                result['d%s' % name] = dx
+                result[errorTitle(name)] = dx
         return pd.DataFrame(result, index=[index])

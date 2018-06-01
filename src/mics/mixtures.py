@@ -7,6 +7,8 @@
 
 """
 
+from collections import OrderedDict
+
 import numpy as np
 import pandas as pd
 from numpy.linalg import multi_dot
@@ -17,6 +19,7 @@ from mics.funcs import func
 from mics.funcs import jacobian
 from mics.utils import InputError
 from mics.utils import cases
+from mics.utils import errorTitle
 from mics.utils import info
 from mics.utils import multimap
 from mics.utils import overlapSampling
@@ -142,16 +145,16 @@ class mixture:
         # TODO: look for duplicated names in properties, derivatives, and combinations
         # TODO: allow limited recursion in combinations
 
-        names = ['f'] + list(properties.keys())
-        if isinstance(conditions, dict):
-            condframe = pd.DataFrame(data=conditions)
-        else:
-            condframe = conditions
-
+        freeEnergy = "f"
+        if freeEnergy in properties.keys():
+            raise InputError("Word % is reserved for free energies" % freeEnergy)
+        propnames = [freeEnergy] + list(properties.keys())
+        condframe = pd.DataFrame(data=conditions) if isinstance(conditions, dict) else conditions
         if mics.verbose:
             info("\n=== Performing reweighting with %s ===" % self.method.__class__.__name__)
             info("Reduced potential:", potential)
-            constants and info("Provided constants: ", constants)
+            info("Computed properties:", ", ".join(propnames))
+            info("Provided constants: ", constants)
 
         if not derivatives:
 
@@ -163,35 +166,40 @@ class mixture:
 
             if (combinations):
                 try:
-                    func, Jac = jacobian(combinations.values(), names, constants)
+                    f, Jac = jacobian(combinations.values(), propnames, constants)
                     jacobian_needed = False
                 except InputError:
                     jacobian_needed = True
 
             results = list()
-            for constants in cases(condframe, constants, mics.verbose):
-                u = self.__compute__(potential, constants)
+            for (index, condition) in cases(condframe):
+                mics.verbose and condition and info("Condition[%s]" % index, condition)
+
+                consts = dict(condition, **constants)
+                u = self.__compute__(potential, consts)
                 if properties_needed:
-                    y = self.__compute__(properties.values(), constants)
-                g, Theta = self.method.__reweight__(self, u, y, reference)
-                dg = stdError(Theta)
+                    y = self.__compute__(properties.values(), consts)
+                yu, Theta = self.method.__reweight__(self, u, y, reference)
+                dyu = stdError(Theta)
+
+                result = OrderedDict()
+                for (name, x, dx) in zip(propnames, yu, dyu):
+                    result[name] = x
+                    result[errorTitle(name)] = dx
 
                 if combinations:
                     if jacobian_needed:
-                        func, Jac = jacobian(combinations.values(), names, constants)
-                    h = func(g).flatten()
-                    J = Jac(g)
+                        f, Jac = jacobian(combinations.values(), propnames, consts)
+                    h = f(yu)
+                    J = Jac(yu)
                     dh = stdError(multi_dot([J, Theta, J.T]))
-                    results.append(np.block([[g, h], [dg, dh]]).T.flatten())
-                else:
-                    results.append(np.stack([g, dg]).T.flatten())
+                    for (name, x, dx) in zip(combinations.keys(), h, dh):
+                        result[name] = x
+                        result[errorTitle(name)] = dx
 
-            header = sum([[x, "d"+x] for x in names + list(combinations.keys())], [])
-            # if condframe.empty:
-            #     return dict(zip(header, results[0]))
-            # else:
-            #     return pd.concat([condframe, pd.DataFrame(results, columns=header)], 1)
-            return pd.concat([condframe, pd.DataFrame(results, columns=header)], 1)
+                results.append(pd.DataFrame(data=result, index=[index]))
+
+            return condframe.join(pd.concat(results))
 
         else:
 
