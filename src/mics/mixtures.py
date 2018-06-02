@@ -116,35 +116,73 @@ class mixture:
                     reference=0,
                     **constants):
         """
-        Computes averages of specified properties at one or more states defined
-        by a given reduced `potential` function. Also, computes derivatives of
-        these averages with respect to
-
-        Performs reweighting of the properties computed by `functions` from the
-        mixture to the samples determined by the provided `potential` with all
-        `parameter` values.
+        Computes averages of specified properties at target states defined by
+        a given reduced `potential` function with distinct passed parameter
+        values, as well as the free energies of such states with respect to a
+        sampled `reference` state. Also, computes derivatives of these averages
+        and free energies with respect to the mentioned parameters. In addition,
+        evaluates combinations of free energies, averages, and derivatives. In
+        all cases, uncertainty propagation is handled automatically by means of
+        the delta method.
 
         Parameters
         ----------
             potential : string
-
+                A mathematical expression defining the reduced potential of the
+                target states. It might depend on the collective variables of
+                the mixture samples, as well as on external parameters whose
+                values will be passed via `conditions` or `constants`, such as
+                explained below.
             properties : dict(string: string), optional, default = {}
-
+                A dictionary associating names to mathematical expressions, thus
+                defining a set of properties whose averages must be evaluated at
+                the target states. If it is omitted, then only the relative free
+                energies of the target states will be evaluated. The expressions
+                might depend on the same collective variables and parameters
+                mentioned above for `potential`.
+            derivatives : dict(string: (string, string)), optional, default = {}
+                A dictionary associating names to (property, parameter) pairs,
+                thus specifying derivatives of average properties at the target
+                states or relative free energies of these states with respect
+                to external parameters. For each pair, property must be either
+                "f" (for free energy) or a name defined in `properties`, while
+                parameter must be an external parameter such as described above
+                for `potential`.
             combinations : dict(string: string), optional, default = {}
-
-            derivatives : dict(string: string), optional, default = {}
-
-            conditions : dict(string: string), optional, default = {}
-
+                A dictionary associating names to mathematical expressions, thus
+                defining combinations among average properties at the target
+                states, the relative free energies of these states, and their
+                derivatives with respect to external parameters. The expressions
+                might depend on "f" (for free energy) or on the names defined in
+                `properties`, as well as on external parameters such as described
+                above for `potential`.
+            conditions : pandas.DataFrame or dict, optional, default = {}
+                A data frame whose column names are external parameters present
+                in mathematical expressions specified in arguments `potential`,
+                `properties`, and `combinations`. The rows of the data frame
+                contain sets of values of these parameters, in such as way that
+                the reweighting is carried out for every single set. This is a
+                way of defining multiple target states from a single `potential`
+                expression. The same information can be passed as a dictionary
+                associating names to lists of numerical values, provided that
+                all lists are equally sized. If it is empty, then a unique
+                target state will be considered and all external parameters in
+                `potential`, if any, must be passed as keyword arguments.
             reference : int, optional, default = 0
-
+                The index of a sampled state to be considered as a reference for
+                computing relative free energies.
             **constants : keyword arguments
+                A set of keyword arguments passed as name=value, aimed to define
+                external parameter values for the evaluation of mathematical
+                expressions. These values will be repeated at all target states
+                specified via `potential` and `conditions`.
 
         Returns
         -------
             pandas.DataFrame
-                A data frame containing the computed quantities at all
-                all specified conditions.
+                A data frame containing the computed quantities, along with
+                their estimated uncertainties, at all target states specified
+                via `potential` and `conditions`.
 
         """
         if mics.verbose:

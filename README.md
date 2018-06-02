@@ -15,7 +15,11 @@
 Overview
 ========
 
-Mixtures of Independently Collected Samples
+A friendly Python library for multistate analysis with MICS and MBAR.
+
+MICS = [Mixture of Independently Collected Samples]()
+
+MBAR = [Multistate Bennett Acceptance Ratio](https://aip.scitation.org/doi/10.1063/1.2978177)
 
 * Free software: MIT license
 
