@@ -7,9 +7,6 @@
 
 """
 
-# TODO: save potential and autocor as strings rather than lambda functions, so that
-#       one can use pickle to save a sample or a mixture object.
-
 import numpy as np
 from pymbar import timeseries
 
@@ -25,29 +22,38 @@ from mics.utils import stdError
 
 class sample:
     """
-    A sample of configurations collected at a specific equilibrium state whose
-    probability density function is proportional to `exp(-potential(x))`. Each
-    configuration `x` is represented by a set of collective variables.
+    A sample of configurations collected at a specific equilibrium state with
+    probability density proportional to `exp(-u(x))`, where `u(x)` is a reduced
+    potential with known functional form. Each configuration `x` is represented
+    by a set of collective variables which either include the reduced potential
+    or can be used to evaluate it, as well as other properties of interest.
 
     Parameters
     ----------
         dataset : pandas.DataFrame
-            A data frame whose rows contain the values of a set of collective
-            variables representing configurations sampled according to a given
-            probability distribution.
+            A data frame whose column names are collective variables used to
+            represent the sampled comfigurations. The rows must contain a time
+            series obtained by simulating a state with known reduced potential.
         potential : string
-            The reduced potential that defines the probability density at the
-            sampled equilibrium sample. This must be a function of the column
-            names in `dataset`.
-        acfun : string, optional, default = potential
-            An property to be used for autocorrelation analysis and effective
-            sample size calculation through the Overlapping Batch Mean (OBM)
-            method. This must be a function of the column names in `dataset`.
-        batchsize : int, optional, default = sqrt(dataset size)
-            The size of each batch (window) to be used for the OBM analysis.
+            A mathematical expression defining the reduced potential of the
+            simulated state. This must be a function of the column names in
+            `dataset` and can also depend on external parameters whose values
+            will be passed as keyword arguments, as explained below.
+        acfun : string, optional, default=potential
+            A mathematical expression defining a property to be used for
+            autocorrelation analysis and effective sample size calculation
+            through the Overlapping Batch Mean (OBM) method. It must depend
+            on the column names in `dataset` and on external parameters
+            passed as keyword arguments. If omitted, then the analysis will
+            be carried out for `potential`.
+        batchsize : int, optional, default=sqrt(dataset size)
+            The size of each batch (window) to be used in the OBM analysis.
+            If omitted, then the batch side will be the integer part of the
+            square root of the sample size.
         **constants : keyword arguments
-            Value assignment for constants present in functions `potential`
-            and `autocorr`.
+            A set of keyword arguments passed as name=value, aimed to define
+            external parameter values for the evaluation of the mathematical
+            expressions in `potential` and `acfun`.
 
     """
 
@@ -90,7 +96,7 @@ class sample:
 
         Parameters
         ----------
-            integratedACF : bool, optional, default = True
+            integratedACF : bool, optional, default=True
                 If true, the integrated autocorrelation function method will
                 be used for computing the statistical inefficency. Otherwise,
                 the Overlapping Batch Mean (OBM) method will be used instead.
@@ -102,7 +108,6 @@ class sample:
                 returned for chaining purposes.
 
         """
-
         n = len(self.dataset)
         if mics.verbose:
             info("\n=== Subsampling via %s ===" % "integrated ACF" if integratedACF else "OBM")
@@ -120,31 +125,36 @@ class sample:
             info("New sample size:", self.neff)
         return self
 
-    def averaging(self,
-                  properties,
-                  combinations={},
-                  index=0,
-                  **constants):
+    def averaging(self, properties, combinations={}, **constants):
         """
-        Performs averaging of specified properties and uncertainty analysis
-        via Overlapping Batch Means. Combinations of these averages can also
-        be computed, with uncertainty propagation being automatically handled.
+        Performs averaging and uncertainty analysis for specified properties.
+        Combinations among averages can also be computed, with uncertainty
+        propagation being handled automatically.
 
         Parameters
         ----------
             properties : dict(string: string)
-
-            combinations : dict(string: string), optional, default = {}
-
-            index : int, optional, default = 0
-                An index for the sigle-row data frame to be returned.
+                A dictionary associating names to mathematical expressions, thus
+                defining a set of properties whose averages must be evaluated at
+                the sampled states. The expressions might depend on the sample's
+                collective variables, as well as on parameters passed as keyword
+                arguments.
+            combinations : dict(string: string), optional, default={}
+                A dictionary associating names to mathematical expressions, thus
+                defining combinations among average properties at the sampled
+                state. The expressions might depend on the names (keys) defined
+                in `properties`, as well as on external parameters passed as
+                keyword arguments.
             **constants : keyword arguments
+                A set of keyword arguments passed as name=value, aimed to define
+                external parameter values for the evaluation of mathematical
+                expressions.
 
         Returns
         -------
             pandas.DataFrame
                 A data frame containing the computed averages and combinations,
-                as well as their computed standard errors.
+                as well as their estimated standard errors.
 
         """
         variables = self.dataset.columns.tolist()
@@ -157,4 +167,4 @@ class sample:
             delta = deltaMethod(combinations.values(), properties.keys(), constants)
             (h, dh) = delta.evaluate(ym, Theta)
             result.update(propertyDict(combinations.keys(), h, dh))
-        return result.to_frame(index)
+        return result.to_frame(0)

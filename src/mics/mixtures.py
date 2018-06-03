@@ -33,7 +33,7 @@ class mixture:
     ----------
         samples : list(mics.sample)
             A list of samples.
-        method : mics.method, optional, default = mics.MICS()
+        method : mics.method, optional, default=mics.MICS()
             A method for mixture-model analysis.
 
     """
@@ -89,7 +89,7 @@ class mixture:
 
         Parameters
         ----------
-            reference : int, optional, default = 0
+            reference : int, optional, default=0
                 Specifies which sampled state will be considered as a reference
                 for computing free-energy differences.
 
@@ -107,14 +107,8 @@ class mixture:
         return frame
 
     # ======================================================================================
-    def reweighting(self,
-                    potential,
-                    properties={},
-                    derivatives={},
-                    combinations={},
-                    conditions={},
-                    reference=0,
-                    **constants):
+    def reweighting(self, potential, properties={}, derivatives={}, combinations={},
+                    conditions={}, reference=0, **constants):
         """
         Computes averages of specified properties at target states defined by
         a given reduced `potential` function with distinct passed parameter
@@ -133,14 +127,14 @@ class mixture:
                 the mixture samples, as well as on external parameters whose
                 values will be passed via `conditions` or `constants`, such as
                 explained below.
-            properties : dict(string: string), optional, default = {}
+            properties : dict(string: string), optional, default={}
                 A dictionary associating names to mathematical expressions, thus
                 defining a set of properties whose averages must be evaluated at
                 the target states. If it is omitted, then only the relative free
                 energies of the target states will be evaluated. The expressions
                 might depend on the same collective variables and parameters
                 mentioned above for `potential`.
-            derivatives : dict(string: (string, string)), optional, default = {}
+            derivatives : dict(string: (string, string)), optional, default={}
                 A dictionary associating names to (property, parameter) pairs,
                 thus specifying derivatives of average properties at the target
                 states or relative free energies of these states with respect
@@ -148,7 +142,7 @@ class mixture:
                 "f" (for free energy) or a name defined in `properties`, while
                 parameter must be an external parameter such as described above
                 for `potential`.
-            combinations : dict(string: string), optional, default = {}
+            combinations : dict(string: string), optional, default={}
                 A dictionary associating names to mathematical expressions, thus
                 defining combinations among average properties at the target
                 states, the relative free energies of these states, and their
@@ -156,7 +150,7 @@ class mixture:
                 might depend on "f" (for free energy) or on the names defined in
                 `properties`, as well as on external parameters such as described
                 above for `potential`.
-            conditions : pandas.DataFrame or dict, optional, default = {}
+            conditions : pandas.DataFrame or dict, optional, default={}
                 A data frame whose column names are external parameters present
                 in mathematical expressions specified in arguments `potential`,
                 `properties`, and `combinations`. The rows of the data frame
@@ -168,7 +162,7 @@ class mixture:
                 all lists are equally sized. If it is empty, then a unique
                 target state will be considered and all external parameters in
                 `potential`, if any, must be passed as keyword arguments.
-            reference : int, optional, default = 0
+            reference : int, optional, default=0
                 The index of a sampled state to be considered as a reference for
                 computing relative free energies.
             **constants : keyword arguments
@@ -240,12 +234,7 @@ class mixture:
                                     **constants).drop(unwanted, axis=1)
 
     # ======================================================================================
-    def pmf(self,
-            potential,
-            property,
-            bins=10,
-            interval=None,
-            **constants):
+    def pmf(self, potential, property, bins=10, interval=None, **constants):
 
         if mics.verbose:
             info("\n=== Computing PMF with %s ===" % self.method.__class__.__name__)
