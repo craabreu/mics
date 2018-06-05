@@ -17,7 +17,10 @@ from mics.funcs import qualifiers
 class pooledsample(list):
     """
     A list with extensions for dealing with collections of :class:`sample`
-    objects.
+    objects. From a `pooledsample`, one can call :func:`~sample.subsampling`
+    and :func:`~sample.averaging` for all samples simultaneously. One can
+    also generate a :class:`mixture` object for multistate analysis with
+    either :class:`MICS` or :class:`MBAR`.
 
     """
 
@@ -84,7 +87,7 @@ class pooledsample(list):
         """
         return mics.mixture(self, engine)
 
-    def subsample(self, integratedACF=True):
+    def subsampling(self, integratedACF=True):
         """
         Performs inline subsampling of all :class:`sample` objects in the list.
 
@@ -103,5 +106,5 @@ class pooledsample(list):
 
         """
         for sample in self:
-            sample.subsample(integratedACF)
+            sample.subsampling(integratedACF)
         return self

@@ -7,8 +7,11 @@ Glossary
     ACF
         Autocorrelation function
 
-    PDF
-        Probability density function
+    IID
+        Independent and identically distributed
 
     OBM
         Overlapping batch mean
+
+    PDF
+        Probability density function

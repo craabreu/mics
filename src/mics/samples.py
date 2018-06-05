@@ -23,32 +23,31 @@ from mics.utils import stdError
 class sample:
     """
     A sample of configurations distributed according to a :term:`PDF`
-    proportional to ``exp(-u(x))``, where ``u(x)`` is a reduced potential.
-    Each configuration ``x`` is represented by a set of collective variables
-    from which one can evaluate the reduced potential, as well as other
-    properties of interest.
+    proportional to ``exp(-u(x))``. Each configuration ``x`` is represented
+    by a set of collective variables from which one can evaluate the reduced
+    potential `u(x)`, as well as other properties of interest.
 
     Parameters
     ----------
         dataset : pandas.DataFrame
             A data frame whose column names are collective variables used to
             represent the sampled comfigurations. The rows must contain a time
-            series obtained by simulating a state with known reduced potential.
+            series of these variables, obtained by simulating the system at a
+            state with known reduced potential.
         potential : str
             A mathematical expression defining the reduced potential of the
             simulated state. This must be a function of the column names in
-            `dataset` and can also depend on external parameters whose values
-            will be passed as keyword arguments, as explained below.
+            `dataset` and can also depend on external parameters passed as
+            keyword arguments (see below).
         acfun : str, optional, default=potential
             A mathematical expression defining a property to be used for
-            autocorrelation analysis and effective sample size calculation
-            through the :term:`OBM` method. It must depend on the column names
-            in `dataset` and on external parameters passed as keyword
-            arguments. If omitted, then the analysis will
-            be carried out for `potential`.
-        batchsize : int, optional, default=sqrt(dataset size)
+            :term:`OBM` autocorrelation analysis and effective sample size
+            calculation. It must be a function of the column names in `dataset`
+            and can also depend on external parameters passed as keyword
+            arguments (see below).
+        batchsize : int, optional, default=sqrt(len(dataset))
             The size of each batch (window) to be used in the :term:`OBM`
-            analysis. If omitted, then the batch side will be the integer
+            analysis. If omitted, then the batch size will be the integer
             part of the square root of the sample size.
         **constants : keyword arguments
             A set of keyword arguments passed as name=value, aimed to define
@@ -87,24 +86,26 @@ class sample:
             info("Variance via Overlapping Batch Means:", Sb)
             info("Effective sample size:", self.neff)
 
-    def subsample(self, integratedACF=True):
+    def subsampling(self, integratedACF=True):
         """
-        Performs inline subsampling based on the statistical inefficency ``g``
-        of the specified :class:`sample` attribute `acfun`. The jumps are not
-        uniformly sized, but vary around ``g`` so that the sample size decays
-        by a factor of approximately ``1/g``.
+        Performs inline subsampling based on the statistical inefficiency ``g``
+        of the specified attribute `acfun`, aiming at obtaining a sample of
+        :term:`IID` configurations. Subsampling is done via jumps of varying
+        sizes around ``g``, so that the sample size decays by a factor of
+        approximately ``1/g``.
 
         Parameters
         ----------
             integratedACF : bool, optional, default=True
-                If true, the integrated :term:`ACF` method will be used for
-                computing the statistical inefficency. Otherwise, the
+                If true, the integrated :term:`ACF` method :cite:`Chodera_2007`
+                will be used for
+                computing the statistical inefficiency. Otherwise, the
                 :term:`OBM` method will be used.
 
         Returns
         -------
             :class:`sample`
-                Although the subsampling is done in line, the new sample is
+                Although the subsampling is done inline, the new sample is
                 returned for chaining purposes.
 
         """
@@ -121,34 +122,34 @@ class sample:
         self.dataset = self.dataset.reindex(new)
         self.neff = len(new)
         if mics.verbose:
-            info("Statistical inefficency:", g)
+            info("Statistical inefficiency:", g)
             info("New sample size:", self.neff)
         return self
 
     def averaging(self, properties, combinations={}, **constants):
         """
-        Performs averaging and uncertainty analysis for specified properties.
-        Combinations among averages can also be computed, with uncertainty
-        propagation being handled automatically.
+        Computes averages and uncertainties of configurational properties. In
+        addition, computes combinations among these averages while automatically
+        handling uncertainty propagation.
 
         Parameters
         ----------
             properties : dict(str: str)
-                A dictionary associating names to mathematical expressions, thus
-                defining a set of properties whose averages must be evaluated at
-                the sampled states. The expressions might depend on the sample's
-                collective variables, as well as on parameters passed as keyword
-                arguments.
+                A dictionary associating names to mathematical expressions. This
+                is used to define functions of the collective variables included
+                in the samples. Then, averages of these functions will be
+                evaluated at all sampled states, along with their uncertainties.
+                The expressions might also depend on parameters passed as
+                keyword arguments (see below).
             combinations : dict(str: str), optional, default={}
-                A dictionary associating names to mathematical expressions, thus
-                defining combinations among average properties at the sampled
-                state. The expressions might depend on the names (keys) defined
-                in `properties`, as well as on external parameters passed as
-                keyword arguments.
-            **constants : keyword arguments
-                A set of keyword arguments passed as ``name=value``, aimed to
-                defining external parameter values for the evaluation of
-                mathematical expressions.
+                A dictionary associating names to mathematical expressions. This
+                is used to define functions of the names passed as keys in the
+                `properties` dictionary. The expressions might also depend on
+                parameters passed as keyword arguments (see below).
+            **constants : optional keyword arguments
+                A set of arguments passed as ``name=value``, used to define
+                parameter values for evaluating the mathematical expressions
+                in both `properties` and `combinations`.
 
         Returns
         -------

@@ -23,12 +23,8 @@ MBAR = [Multistate Bennett Acceptance Ratio](https://aip.scitation.org/doi/10.10
 
 * Free software: MIT license
 
-Installation
-============
-
-    pip install mics
-
 Documentation
 =============
 
-https://mics.readthedocs.io/
+https://mics.readthedocs.io/en/stable
+https://mics.readthedocs.io/en/latest

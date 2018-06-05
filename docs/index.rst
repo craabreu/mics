@@ -13,6 +13,7 @@ Contents
    authors
    changelog
    glossary
+   references
 
 Indices and tables
 ==================

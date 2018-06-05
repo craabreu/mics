@@ -76,7 +76,7 @@ print(fu)
 
 # MBAR
 
-mbar = deepcopy(samples).subsample().mixture(mics.MBAR())
+mbar = deepcopy(samples).subsampling().mixture(mics.MBAR())
 print(mbar.free_energies())
 
 
