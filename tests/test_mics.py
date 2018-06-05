@@ -35,7 +35,7 @@ def test_pooledsample():
 def test_mics_single_sample():
     dataset = pd.read_csv(data[0], sep=" ")
     sample = mics.sample(dataset, "beta*E1", "beta*(E2 - E1)", beta=beta)
-    mixture = mics.mixture([sample], method=mics.MICS())
+    mixture = mics.mixture([sample], engine=mics.MICS())
     assert mixture.Overlap[0][0] == pytest.approx(1.0)
 
 
@@ -47,7 +47,7 @@ def test_mbar_single_sample():
 
 
 # mixture = mics.mixture(samples)
-mixture = samples.mixture()
+mixture = samples.mixture(mics.MICS())
 print(mixture.free_energies())
 
 

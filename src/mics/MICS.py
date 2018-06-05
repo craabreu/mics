@@ -28,7 +28,7 @@ class MICS:
             A predefined composition for the mixture. If this is None, then the
             prior probability of each state will be considered as proportional
             to the effective size of the corresponding sample.
-        tol : real, optional, default = 1.0e-12
+        tol : real, optional, default = 1e-12
             A tolerance for determining convergence of the self-consistent
             solution of the MICS equations.
 

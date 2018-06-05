@@ -22,7 +22,7 @@ class MBAR:
 
     Parameters
     ----------
-        tol : real, optional, default = 1.0e-12
+        tol : real, optional, default = 1e-12
             A tolerance for determining convergence of the self-consistent
             solution of the MBAR equations.
 

@@ -31,22 +31,22 @@ class mixture:
 
     Parameters
     ----------
-        samples : list(mics.sample)
+        samples : :class:`pooledsample` or list(:class:`sample`)
             A list of samples.
-        method : mics.method, optional, default=mics.MICS()
+        engine : :class:`MICS` or :class:`MBAR`
             A method for mixture-model analysis.
 
     """
 
-    def __init__(self, samples, method=mics.MICS()):
+    def __init__(self, samples, engine):
 
         self.samples = samples
-        self.method = method
+        self.engine = engine
         m = self.m = len(samples)
         if mics.verbose:
             # np.set_printoptions(precision=4, threshold=15, edgeitems=4, suppress=True)
             info("\n=== Setting up mixture ===")
-            info("Analysis method: ", self.method.__class__.__name__)
+            info("Analysis method: ", self.engine.__class__.__name__)
             info("Number of samples:", m)
 
         if m == 0:
@@ -68,7 +68,7 @@ class mixture:
         self.f = overlapSampling(self.u)
         mics.verbose and info("Initial free-energy guess:", self.f)
 
-        self.method.__initialize__(self)
+        self.engine.__initialize__(self)
 
     # ======================================================================================
     def __compute__(self, functions, constants):
@@ -121,20 +121,20 @@ class mixture:
 
         Parameters
         ----------
-            potential : string
+            potential : str
                 A mathematical expression defining the reduced potential of the
                 target states. It might depend on the collective variables of
                 the mixture samples, as well as on external parameters whose
                 values will be passed via `conditions` or `constants`, such as
                 explained below.
-            properties : dict(string: string), optional, default={}
+            properties : dict(str: str), optional, default={}
                 A dictionary associating names to mathematical expressions, thus
                 defining a set of properties whose averages must be evaluated at
                 the target states. If it is omitted, then only the relative free
                 energies of the target states will be evaluated. The expressions
                 might depend on the same collective variables and parameters
                 mentioned above for `potential`.
-            derivatives : dict(string: (string, string)), optional, default={}
+            derivatives : dict(str: (str, str)), optional, default={}
                 A dictionary associating names to (property, parameter) pairs,
                 thus specifying derivatives of average properties at the target
                 states or relative free energies of these states with respect
@@ -142,7 +142,7 @@ class mixture:
                 "f" (for free energy) or a name defined in `properties`, while
                 parameter must be an external parameter such as described above
                 for `potential`.
-            combinations : dict(string: string), optional, default={}
+            combinations : dict(str: str), optional, default={}
                 A dictionary associating names to mathematical expressions, thus
                 defining combinations among average properties at the target
                 states, the relative free energies of these states, and their
@@ -180,7 +180,7 @@ class mixture:
 
         """
         if mics.verbose:
-            info("\n=== Performing reweighting with %s ===" % self.method.__class__.__name__)
+            info("\n=== Performing reweighting with %s ===" % self.engine.__class__.__name__)
             info("Reduced potential:", potential)
             constants and info("Provided constants: ", constants)
 
@@ -204,7 +204,7 @@ class mixture:
                 consts = dict(condition, **constants)
                 u = self.__compute__(potential, consts)
                 y = gProps if gProps else self.__compute__(propfuncs, consts)
-                (yu, Theta) = self.method.__reweight__(self, u, y, reference)
+                (yu, Theta) = self.engine.__reweight__(self, u, y, reference)
                 result = propertyDict(propnames, yu, stdError(Theta))
                 if combinations:
                     delta = gDelta if gDelta.valid else deltaMethod(combs, propnames, consts)
@@ -237,7 +237,7 @@ class mixture:
     def pmf(self, potential, property, bins=10, interval=None, **constants):
 
         if mics.verbose:
-            info("\n=== Computing PMF with %s ===" % self.method.__class__.__name__)
+            info("\n=== Computing PMF with %s ===" % self.engine.__class__.__name__)
             info("Reduced potential:", potential)
         u = self.__compute__(potential, constants)
         z = self.__compute__(property, constants)

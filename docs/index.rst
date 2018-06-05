@@ -8,10 +8,11 @@ Contents
    readme
    installation
    usage
-   reference/index
+   pythonapi/index
    contributing
    authors
    changelog
+   glossary
 
 Indices and tables
 ==================
@@ -19,4 +20,3 @@ Indices and tables
 * :ref:`genindex`
 * :ref:`modindex`
 * :ref:`search`
-

@@ -16,8 +16,8 @@ from mics.funcs import qualifiers
 
 class pooledsample(list):
     """
-    A python list subclass with extensions for dealing with collections of
-    `mics.sample` objects.
+    A list with extensions for dealing with collections of :class:`sample`
+    objects.
 
     """
 
@@ -34,49 +34,28 @@ class pooledsample(list):
 
     def averaging(self, properties, combinations={}, **constants):
         """
-        Performs averaging and uncertainty analysis for specified properties.
-        Combinations among averages can also be computed, with uncertainty
-        propagation being handled automatically.
+        For all :class:`sample` objects in the list, performs :func:`sample.averaging` and
+        uncertainty analysis of specified properties. Combinations among
+        averages can also be computed, with uncertainty propagation being handled automatically.
 
         Parameters
         ----------
-            properties : dict(string: string)
+            properties : dict(str: str)
                 A dictionary associating names to mathematical expressions, thus
                 defining a set of properties whose averages must be evaluated at
                 the sampled states. The expressions might depend on the sample's
                 collective variables, as well as on parameters passed as keyword
                 arguments.
-            combinations : dict(string: string), optional, default={}
+            combinations : dict(str: str), optional, default={}
                 A dictionary associating names to mathematical expressions, thus
                 defining combinations among average properties at the sampled
                 state. The expressions might depend on the names (keys) defined
                 in `properties`, as well as on external parameters passed as
                 keyword arguments.
             **constants : keyword arguments
-                A set of keyword arguments passed as name=value, aimed to define
-                external parameter values for the evaluation of mathematical
-                expressions.
-
-        Returns
-        -------
-            pandas.DataFrame
-                A data frame containing the computed averages and combinations,
-                as well as their estimated standard errors.
-
-        """
-
-        """
-        Performs averaging of specified properties and uncertainty analysis
-        via Overlapping Batch Means. Combinations of these averages can also
-        be computed, with uncertainty propagation being automatically handled.
-
-        Parameters
-        ----------
-            properties : dict(string: string)
-
-            combinations : dict(string: string), optional, default={}
-
-            **constants : keyword arguments
+                A set of keyword arguments passed as ``name=value``, aimed to
+                defining external parameter values for the evaluation of
+                mathematical expressions.
 
         Returns
         -------
@@ -90,23 +69,35 @@ class pooledsample(list):
             results.append(sample.averaging(properties, combinations, **constants))
         return self.__qualifiers__().join(pd.concat(results, ignore_index=True))
 
-    def mixture(self, method=mics.MICS()):
-        return mics.mixture(self, method)
+    def mixture(self, engine):
+        """
+            Generates a :class:`mixture` object.
+
+        Parameters
+        ----------
+            engine: :class:`MICS` or :class:`MBAR`
+
+        Returns
+        -------
+            :class:`mixture`
+
+        """
+        return mics.mixture(self, engine)
 
     def subsample(self, integratedACF=True):
         """
-        Performs inline subsampling of all samples in the list.
+        Performs inline subsampling of all :class:`sample` objects in the list.
 
         Parameters
         ----------
             integratedACF : bool, optional, default=True
                 If true, the integrated autocorrelation function method will
                 be used for computing the statistical inefficency. Otherwise,
-                the Overlapping Batch Mean (OBM) method will be used instead.
+                the :term:`OBM` method will be used instead.
 
         Returns
         -------
-            mics.pooledsample
+            :class:`pooledsample`
                 Although the subsampling is done in line, the new pooled sample
                 is returned for chaining purposes.
 

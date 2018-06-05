@@ -6,8 +6,6 @@ from mics.mixtures import mixture
 from mics.pooledsamples import pooledsample
 from mics.samples import sample
 
-pool = pooledsample  # TODO: remove this line and the 'pool' item below
-
 verbose = False
 
-__all__ = ['sample', 'pool', 'pooledsample', 'mixture', 'MICS', 'MBAR']
+__all__ = ['sample', 'pooledsample', 'mixture', 'MICS', 'MBAR']

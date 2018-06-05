@@ -22,11 +22,11 @@ from mics.utils import stdError
 
 class sample:
     """
-    A sample of configurations collected at a specific equilibrium state with
-    probability density proportional to `exp(-u(x))`, where `u(x)` is a reduced
-    potential with known functional form. Each configuration `x` is represented
-    by a set of collective variables which either include the reduced potential
-    or can be used to evaluate it, as well as other properties of interest.
+    A sample of configurations distributed according to a :term:`PDF`
+    proportional to ``exp(-u(x))``, where ``u(x)`` is a reduced potential.
+    Each configuration ``x`` is represented by a set of collective variables
+    from which one can evaluate the reduced potential, as well as other
+    properties of interest.
 
     Parameters
     ----------
@@ -34,22 +34,22 @@ class sample:
             A data frame whose column names are collective variables used to
             represent the sampled comfigurations. The rows must contain a time
             series obtained by simulating a state with known reduced potential.
-        potential : string
+        potential : str
             A mathematical expression defining the reduced potential of the
             simulated state. This must be a function of the column names in
             `dataset` and can also depend on external parameters whose values
             will be passed as keyword arguments, as explained below.
-        acfun : string, optional, default=potential
+        acfun : str, optional, default=potential
             A mathematical expression defining a property to be used for
             autocorrelation analysis and effective sample size calculation
-            through the Overlapping Batch Mean (OBM) method. It must depend
-            on the column names in `dataset` and on external parameters
-            passed as keyword arguments. If omitted, then the analysis will
+            through the :term:`OBM` method. It must depend on the column names
+            in `dataset` and on external parameters passed as keyword
+            arguments. If omitted, then the analysis will
             be carried out for `potential`.
         batchsize : int, optional, default=sqrt(dataset size)
-            The size of each batch (window) to be used in the OBM analysis.
-            If omitted, then the batch side will be the integer part of the
-            square root of the sample size.
+            The size of each batch (window) to be used in the :term:`OBM`
+            analysis. If omitted, then the batch side will be the integer
+            part of the square root of the sample size.
         **constants : keyword arguments
             A set of keyword arguments passed as name=value, aimed to define
             external parameter values for the evaluation of the mathematical
@@ -89,21 +89,21 @@ class sample:
 
     def subsample(self, integratedACF=True):
         """
-        Performs inline subsampling based on the statistical inefficency `g`
-        of the specified function `acfun`. The jumps are not uniformly sized,
-        but vary around `g` so that the sample size decays by a factor of
-        approximately `1/g`.
+        Performs inline subsampling based on the statistical inefficency ``g``
+        of the specified :class:`sample` attribute `acfun`. The jumps are not
+        uniformly sized, but vary around ``g`` so that the sample size decays
+        by a factor of approximately ``1/g``.
 
         Parameters
         ----------
             integratedACF : bool, optional, default=True
-                If true, the integrated autocorrelation function method will
-                be used for computing the statistical inefficency. Otherwise,
-                the Overlapping Batch Mean (OBM) method will be used instead.
+                If true, the integrated :term:`ACF` method will be used for
+                computing the statistical inefficency. Otherwise, the
+                :term:`OBM` method will be used.
 
         Returns
         -------
-            mics.sample
+            :class:`sample`
                 Although the subsampling is done in line, the new sample is
                 returned for chaining purposes.
 
@@ -133,22 +133,22 @@ class sample:
 
         Parameters
         ----------
-            properties : dict(string: string)
+            properties : dict(str: str)
                 A dictionary associating names to mathematical expressions, thus
                 defining a set of properties whose averages must be evaluated at
                 the sampled states. The expressions might depend on the sample's
                 collective variables, as well as on parameters passed as keyword
                 arguments.
-            combinations : dict(string: string), optional, default={}
+            combinations : dict(str: str), optional, default={}
                 A dictionary associating names to mathematical expressions, thus
                 defining combinations among average properties at the sampled
                 state. The expressions might depend on the names (keys) defined
                 in `properties`, as well as on external parameters passed as
                 keyword arguments.
             **constants : keyword arguments
-                A set of keyword arguments passed as name=value, aimed to define
-                external parameter values for the evaluation of mathematical
-                expressions.
+                A set of keyword arguments passed as ``name=value``, aimed to
+                defining external parameter values for the evaluation of
+                mathematical expressions.
 
         Returns
         -------
