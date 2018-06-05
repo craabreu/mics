@@ -23,13 +23,32 @@ for i in range(m):
     autocorr = "beta*(E%d - E%d)" % (min(i+2, m), max(i, 1))
     samples += mics.sample(dataset, potential, autocorr, beta=beta)
 
-print(samples.averaging(dict(T='Temp', K='KinEng'), combinations=dict(R='K/T')))
+
+def test_read_samples():
+    for sample in samples:
+        assert sample.dataset.columns[5] == 'Press'
 
 
 def test_pooledsample():
     neff = [100.829779921697, 76.82824014457174, 69.63811023389404, 55.179192164637165]
-    for i in range(4):
+    for i in range(m):
         assert samples[i].neff == pytest.approx(neff[i])
+
+
+def test_samplesum():
+    assert sum([sample for sample in samples]) == samples
+    assert samples[0] + samples[1] == samples[0:2]
+    assert samples[0] + samples[1:] == samples
+    assert samples[0:2] + samples[2:4] == samples
+
+
+def test_averaging():
+    KE = [638.2521104699999, 637.60096689, 638.10787766, 638.76491318]
+    dKE = [0.5450308320618747, 0.701666341463894, 0.5484439624133098, 0.5842767924919752]
+    df = samples.averaging(dict(T='Temp', K='KinEng'), combinations=dict(R='K/T'))
+    for i in range(m):
+        assert df["K"][i] == pytest.approx(KE[i])
+        assert df["dK"][i] == pytest.approx(dKE[i])
 
 
 def test_mics_single_sample():
@@ -46,7 +65,6 @@ def test_mbar_single_sample():
     assert mixture.Overlap[0][0] == pytest.approx(1.0)
 
 
-# mixture = mics.mixture(samples)
 mixture = samples.mixture(mics.MICS())
 print(mixture.free_energies())
 

@@ -16,20 +16,40 @@ from mics.funcs import qualifiers
 
 class pooledsample(list):
     """
-    A list with extensions for dealing with collections of :class:`sample`
-    objects. From a `pooledsample`, one can call :func:`~sample.subsampling`
-    and :func:`~sample.averaging` for all samples simultaneously. One can
-    also generate a :class:`mixture` object for multistate analysis with
-    either :class:`MICS` or :class:`MBAR`.
+    A python list, but with extensions for dealing with collections of
+    :class:`sample` objects. For instance, from a `pooledsample` one can call
+    :func:`~sample.subsampling` and :func:`~sample.averaging` for all samples
+    simultaneously. One can also create a :class:`mixture` object for
+    multistate analysis with either :class:`MICS` or :class:`MBAR`.
 
     """
 
-    def __iadd__(self, item):
-        if isinstance(item, mics.sample):
-            self.append(item)
+    def __init__(self, iterable=0):
+        # This constructor uses __iadd__ to ensure that only :class:`sample`
+        # objects are accepted.
+        super(pooledsample, self).__init__()
+        if iterable is not 0:
+            self.__iadd__(iterable)
+
+    def __iadd__(self, other):
+        # This makes the += operator act like a chained `append` method, but
+        # accepting only :class:`sample` objects as arguments.
+        if isinstance(other, mics.sample):
+            self.append(other)
+        elif hasattr(other, "__iter__"):
+            for item in other:
+                self.__iadd__(item)
         else:
-            super(pooledsample, self).__iadd__(item)
+            raise ValueError("A pooledsample can only contain sample objects")
         return self
+
+    def __add__(self, other):
+        return pooledsample(super(pooledsample, self).__add__(pooledsample(other)))
+
+    def __getitem__(self, key):
+        # This is necessary for slices to be returned as pooledsample objects.
+        item = super(pooledsample, self).__getitem__(key)
+        return item if isinstance(item, mics.sample) else pooledsample(item)
 
     def __qualifiers__(self):
         functions = [sample.potential for sample in self]

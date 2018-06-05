@@ -25,7 +25,7 @@ class sample:
     A sample of configurations distributed according to a :term:`PDF`
     proportional to ``exp(-u(x))``. Each configuration ``x`` is represented
     by a set of collective variables from which one can evaluate the reduced
-    potential `u(x)`, as well as other properties of interest.
+    potential ``u(x)``, as well as other properties of interest.
 
     Parameters
     ----------
@@ -86,21 +86,26 @@ class sample:
             info("Variance via Overlapping Batch Means:", Sb)
             info("Effective sample size:", self.neff)
 
+    def __add__(self, other):
+        return mics.pooledsample([self]) + other
+
+    def __radd__(self, other):
+        return mics.pooledsample(other) + self
+
     def subsampling(self, integratedACF=True):
         """
         Performs inline subsampling based on the statistical inefficiency ``g``
-        of the specified attribute `acfun`, aiming at obtaining a sample of
-        :term:`IID` configurations. Subsampling is done via jumps of varying
-        sizes around ``g``, so that the sample size decays by a factor of
-        approximately ``1/g``.
+        of the specified attribute `acfun` of :class:`sample`, aiming at
+        obtaining a sample of :term:`IID` configurations. Subsampling is done
+        via jumps of varying sizes around ``g``, so that the sample size decays
+        by a factor of approximately ``1/g``.
 
         Parameters
         ----------
             integratedACF : bool, optional, default=True
                 If true, the integrated :term:`ACF` method :cite:`Chodera_2007`
-                will be used for
-                computing the statistical inefficiency. Otherwise, the
-                :term:`OBM` method will be used.
+                will be used for computing the statistical inefficiency.
+                Otherwise, the :term:`OBM` method will be used instead.
 
         Returns
         -------

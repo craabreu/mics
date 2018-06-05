@@ -18,7 +18,7 @@ from mics.utils import logsumexp
 
 class MBAR:
     """
-    Machinery for mixture-model analysis using the MBAR method.
+    Machinery for mixture-model analysis using the MBAR method :cite:`Shirts_2008`.
 
     Parameters
     ----------
