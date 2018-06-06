@@ -16,11 +16,11 @@ from mics.funcs import qualifiers
 
 class pooledsample(list):
     """
-    A python list, but with extensions for dealing with collections of
-    :class:`sample` objects. For instance, from a `pooledsample` one can call
-    :func:`~sample.subsampling` and :func:`~sample.averaging` for all samples
-    simultaneously. One can also create a :class:`mixture` object for
-    multistate analysis with either :class:`MICS` or :class:`MBAR`.
+    A python list, but with special extensions for dealing with collections of
+    :class:`sample` objects. For instance, :func:`~sample.subsampling` and
+    :func:`~sample.averaging` can be called for all samples simultaneously.
+    There is also a method for creating a :class:`mixture` object directly from
+    a pooledsample.
 
     """
 
@@ -57,34 +57,17 @@ class pooledsample(list):
 
     def averaging(self, properties, combinations={}, **constants):
         """
-        For all :class:`sample` objects in the list, performs :func:`sample.averaging` and
-        uncertainty analysis of specified properties. Combinations among
-        averages can also be computed, with uncertainty propagation being handled automatically.
+        Calls :func:`~sample.averaging` for all samples in the list.
 
         Parameters
         ----------
-            properties : dict(str: str)
-                A dictionary associating names to mathematical expressions, thus
-                defining a set of properties whose averages must be evaluated at
-                the sampled states. The expressions might depend on the sample's
-                collective variables, as well as on parameters passed as keyword
-                arguments.
-            combinations : dict(str: str), optional, default={}
-                A dictionary associating names to mathematical expressions, thus
-                defining combinations among average properties at the sampled
-                state. The expressions might depend on the names (keys) defined
-                in `properties`, as well as on external parameters passed as
-                keyword arguments.
-            **constants : keyword arguments
-                A set of keyword arguments passed as ``name=value``, aimed to
-                defining external parameter values for the evaluation of
-                mathematical expressions.
+            : Same as in :func:`sample.averaging`.
 
         Returns
         -------
             pandas.DataFrame
                 A data frame containing the computed averages and combinations,
-                as well as their estimated standard errors.
+                as well as their estimated standard errors, for all samples.
 
         """
         results = list()
@@ -94,7 +77,7 @@ class pooledsample(list):
 
     def mixture(self, engine):
         """
-            Generates a :class:`mixture` object.
+        Generates a :class:`mixture` object.
 
         Parameters
         ----------
@@ -109,14 +92,11 @@ class pooledsample(list):
 
     def subsampling(self, integratedACF=True):
         """
-        Performs inline subsampling of all :class:`sample` objects in the list.
+        Calls :func:`~sample.subsampling` for all samples in the list.
 
         Parameters
         ----------
-            integratedACF : bool, optional, default=True
-                If true, the integrated autocorrelation function method will
-                be used for computing the statistical inefficency. Otherwise,
-                the :term:`OBM` method will be used instead.
+            : Same as in :func:`sample.subsampling`.
 
         Returns
         -------
