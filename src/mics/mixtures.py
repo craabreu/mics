@@ -60,9 +60,6 @@ class mixture:
             info("Effective sample sizes:", self.neff)
             info("Properties:", ", ".join(names))
 
-        if any(list(sample.dataset.columns) != names for sample in samples):
-            raise InputError("provided samples have distinct properties")
-
         potentials = [sample.potential.lambdify() for sample in samples]
         self.u = [multimap(potentials, sample.dataset) for sample in samples]
         self.f = overlapSampling(self.u)
