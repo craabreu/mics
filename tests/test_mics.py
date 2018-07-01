@@ -113,3 +113,5 @@ print(props)
 
 fu = mbar.reweighting(potential="beta*E4", conditions=parameters)
 print(fu)
+
+print(mixture.histograms(property="potential"))

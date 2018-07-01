@@ -27,4 +27,5 @@ Documentation
 =============
 
 https://mics.readthedocs.io/en/stable
+
 https://mics.readthedocs.io/en/latest

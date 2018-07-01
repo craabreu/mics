@@ -277,5 +277,5 @@ class mixture:
         center = [ymin + delta*(i + 0.5) for i in range(bins)]
         frame = pd.DataFrame({property: center})
         for i in range(self.m):
-            frame["state %s" % (i+1)] = np.histogram(y[i], bins, (ymin, ymax)).item(0)
+            frame["state %s" % (i+1)] = np.histogram(y[i], bins, (ymin, ymax))[0]
         return frame
