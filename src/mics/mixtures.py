@@ -251,10 +251,9 @@ class mixture:
             zc = zmin + delta*(i + 0.5)
             mics.verbose and info("Bin[%d]:" % (i + 1), "%s = %s" % (property, str(zc)))
             y = [np.equal(x, i).astype(np.float) for x in ibin]
-            yu, Theta = self.__reweight__(u, y)
+            (yu, Theta) = self.engine.__reweight__(self, u, y)
             if yu[1] > 0.0:
                 dyu = np.sqrt(Theta[1, 1])
-                print([zc, -np.log(yu[1]), dyu/yu[1]])
                 results.append([zc, -np.log(yu[1]), dyu/yu[1]])
 
         return pd.DataFrame(results, columns=[property, "pmf", errorTitle("pmf")])
@@ -270,7 +269,7 @@ class mixture:
         elif property == "potential":
             y = [self.u[i][i, :] for i in range(self.m)]
         else:
-            y = self.compute(property, constants)
+            y = self.__compute__(property, constants)
         ymin = min([np.amin(x) for x in y])
         ymax = max([np.amax(x) for x in y])
         delta = (ymax - ymin)/bins

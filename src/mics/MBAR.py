@@ -39,7 +39,8 @@ class MBAR:
 
         mb = self.MBAR = mbar.MBAR(np.hstack(mixture.u), n,
                                    relative_tolerance=self.tol,
-                                   initial_f_k=mixture.f)
+                                   initial_f_k=mixture.f,
+                                   verbose=mics.verbose)
 
         mixture.f = mb.f_k
         mics.verbose and info("Free energies after convergence:", mixture.f)

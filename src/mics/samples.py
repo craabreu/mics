@@ -116,7 +116,7 @@ class sample:
         """
         n = len(self.dataset)
         if mics.verbose:
-            info("\n=== Subsampling via %s ===" % "integrated ACF" if integratedACF else "OBM")
+            info("\n=== Subsampling via %s ===" % ("integrated ACF" if integratedACF else "OBM"))
             info("Original sample size:", n)
         if integratedACF:
             y = multimap([self.acfun.lambdify()], self.dataset)
