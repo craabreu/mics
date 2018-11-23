@@ -13,7 +13,7 @@ import sympy
 from sympy import Matrix
 from sympy import Symbol
 from sympy.parsing.sympy_parser import parse_expr
-from sympy.parsing.sympy_tokenize import TokenError
+from sympy.parsing.sympy_parser import TokenError
 from sympy.utilities.lambdify import lambdify
 
 from mics.utils import InputError
