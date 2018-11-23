@@ -11,6 +11,9 @@ from collections import OrderedDict
 
 import numpy as np
 import pandas as pd
+from pymbar.bar import BAR
+
+import mics
 
 
 # ==========================================================================================
@@ -114,6 +117,25 @@ def overlapSampling(u):
         i = j - 1
         f[j] = f[i] + logsumexp(0.5*(u[j][j, :] - u[j][i, :])) - \
             logsumexp(0.5*(u[i][i, :] - u[i][j, :]))
+    return f - f[0]
+
+
+# ==========================================================================================
+def bennett(u):
+    """
+    Computes the relative free energies of all sampled states using the Bennett
+    Acceptance Ratio method.
+    """
+    m = len(u)
+    f = np.zeros(m)
+    for j in range(1, m):
+        i = j - 1
+        wF = u[j][j, :] - u[j][i, :]
+        wR = u[i][i, :] - u[i][j, :]
+        f[j] = f[i] + BAR(wF, wR,
+                          relative_tolerance=1E-6,
+                          verbose=mics.verbose,
+                          compute_uncertainty=False)
     return f - f[0]
 
 

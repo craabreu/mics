@@ -15,12 +15,12 @@ from mics.funcs import deltaMethod
 from mics.funcs import diff
 from mics.funcs import func
 from mics.utils import InputError
+from mics.utils import bennett
 from mics.utils import cases
 from mics.utils import crypto
 from mics.utils import errorTitle
 from mics.utils import info
 from mics.utils import multimap
-from mics.utils import overlapSampling
 from mics.utils import propertyDict
 from mics.utils import stdError
 
@@ -62,9 +62,8 @@ class mixture:
 
         potentials = [sample.potential.lambdify() for sample in samples]
         self.u = [multimap(potentials, sample.dataset) for sample in samples]
-        self.f = overlapSampling(self.u)
+        self.f = bennett(self.u)
         mics.verbose and info("Initial free-energy guess:", self.f)
-
         self.engine.__initialize__(self)
 
     # ======================================================================================
