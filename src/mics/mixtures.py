@@ -252,7 +252,7 @@ class mixture:
             y = [np.equal(x, i).astype(np.float) for x in ibin]
             (yu, Theta) = self.engine.__reweight__(self, u, y)
             if yu[1] > 0.0:
-                dyu = np.sqrt(Theta[1, 1])
+                dyu = np.sqrt(max(0.0, Theta[1, 1]))
                 results.append([zc, -np.log(yu[1]), dyu/yu[1]])
 
         return pd.DataFrame(results, columns=[property, "pmf", errorTitle("pmf")])

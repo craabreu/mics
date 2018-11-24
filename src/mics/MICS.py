@@ -44,7 +44,12 @@ class MICS:
         neff = mixture.neff
 
         b = self.b = [s.b for s in mixture.samples]
-        x = neff if self.composition is None else np.array(self.composition)
+        if self.composition is None:
+            x = neff
+        elif self.composition == "uniform":
+            x = np.ones(m)
+        else:
+            x = np.array(self.composition)
         pi = self.pi = x/np.sum(x)
         mics.verbose and info("Mixture composition:", pi)
 
