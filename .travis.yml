@@ -24,7 +24,7 @@ before_install:
   - uname -a
   - lsb_release -a
 install:
-  - pip install tox
+  - pip install tox tox-conda
   - virtualenv --version
   - easy_install --version
   - pip --version

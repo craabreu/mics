@@ -11,6 +11,8 @@ import numpy as np
 import pandas as pd
 
 import mics
+from mics.funcs import func
+from mics.utils import multimap
 from mics.funcs import qualifiers
 
 
@@ -108,3 +110,21 @@ class pooledsample(list):
         for sample in self:
             sample.subsampling(integratedACF)
         return self
+
+    def histograms(self, property='potential', bins=100, **constants):
+        """
+        """
+        if property == 'potential':
+            y = [multimap([sample.potential.lambdify()], sample.dataset) for sample in self]
+        else:
+            names = list(self[0].dataset.columns)
+            function = [func(property, names, constants).lambdify()]
+            y = [multimap(function, sample.dataset) for sample in self]
+        ymin = min([np.amin(x) for x in y])
+        ymax = max([np.amax(x) for x in y])
+        delta = (ymax - ymin)/bins
+        center = [ymin + delta*(i + 0.5) for i in range(bins)]
+        frame = pd.DataFrame({property: center})
+        for i in range(len(self)):
+            frame["state %s" % (i+1)] = np.histogram(y[i], bins, (ymin, ymax))[0]
+        return frame
