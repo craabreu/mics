@@ -12,8 +12,8 @@ import pandas as pd
 
 import mics
 from mics.funcs import func
-from mics.utils import multimap
 from mics.funcs import qualifiers
+from mics.utils import multimap
 
 
 class pooledsample(list):
@@ -30,7 +30,7 @@ class pooledsample(list):
         # This constructor uses __iadd__ to ensure that only :class:`sample`
         # objects are accepted.
         super(pooledsample, self).__init__()
-        if iterable is not 0:
+        if iterable != 0:
             self.__iadd__(iterable)
 
     def __iadd__(self, other):

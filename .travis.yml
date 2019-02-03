@@ -1,4 +1,5 @@
 language: python
+python: '3.6'
 sudo: false
 cache: pip
 env:
@@ -10,9 +11,9 @@ env:
     - TOXENV=docs
 matrix:
   include:
-    - python: '2.7'
-      env:
-        - TOXENV=py27,coveralls,codecov
+    # - python: '2.7'
+    #   env:
+    #     - TOXENV=py27,coveralls,codecov
     - python: '3.5'
       env:
         - TOXENV=py35,coveralls,codecov
