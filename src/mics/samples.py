@@ -52,7 +52,9 @@ class sample:
         **constants : keyword arguments
             A set of keyword arguments passed as name=value, aimed to define
             external parameter values for the evaluation of the mathematical
-            expressions in `potential` and `acfun`.
+            expressions in `potential` and `acfun`. They can also be used as
+            labels to distinguish samples from each other, in this case not
+            necessary being present in the mentioned expressions.
 
     """
 

@@ -113,7 +113,7 @@ def qualifiers(functions):
     table = {}
     for key in ubiquitous:
         values = [f.constants[key] for f in functions]
-        if (len(set(values)) == n):
+        if len(set(values)) > 1:
             table[key] = values
     if not table:
         table['potential'] = [f.expression for f in functions]
