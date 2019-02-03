@@ -1,12 +1,13 @@
 #!/bin/bash -eE
 :<<"::batch"
 @echo off
-pip install numpy six
-pip install %*
+conda install --prefix=%1 --yes numpy six
+for /f "tokens=1,* delims= " %%a in ("%*") do set ALL_BUT_FIRST=%%b
+pip install %ALL_BUT_FIRST%
 goto :end
 ::batch
-pip install numpy six
-pip install $*
+conda install --prefix=$1 --yes numpy six
+pip install ${@:2}
 exit $?
 :<<"::done"
 :end
